@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Check, Plus, Trash2, Award, History, Dumbbell, PlayCircle } from 'lucide-react';
+import { Check, Plus, Trash2, Award, History, Dumbbell, PlayCircle, Timer } from 'lucide-react';
 import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
+import ExerciseAnimation from './ExerciseAnimation';
 
 export default function ExerciseCard({
   exercise,
@@ -8,7 +9,9 @@ export default function ExerciseCard({
   onRemoveExercise,
   previousRecord,
   onSetCompleted,
-  onOpenFormGuide
+  onOpenFormGuide,
+  onStartTransitionTimer,
+  isLastExercise
 }) {
   const [sets, setSets] = useState(
     exercise.sets && exercise.sets.length > 0
@@ -40,7 +43,6 @@ export default function ExerciseCard({
     const weightNum = Number(currentSet.weight) || 0;
     const repsNum = Number(currentSet.reps) || 0;
 
-    // Check PR against previous record
     const prevWeight = previousRecord?.weight || 0;
     const isNewPr = newStatus && (weightNum > prevWeight || (weightNum === prevWeight && repsNum > (previousRecord?.reps || 0)));
 
@@ -87,71 +89,77 @@ export default function ExerciseCard({
   };
 
   const hasPrInCurrentSession = sets.some((s) => s.completed && s.isPr);
+  const allSetsCompleted = sets.length > 0 && sets.every((s) => s.completed);
 
   return (
-    <div className="bg-white dark:bg-[#181B20] rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-[#2D333B] shadow-sm hover:shadow-md transition-all mb-4">
-      {/* Exercise Header */}
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div>
-          <div className="flex items-center flex-wrap gap-2 mb-1">
-            <span
-              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${muscleStyle.badgeBg} ${muscleStyle.badgeText} ${muscleStyle.badgeBorder}`}
-            >
+    <div className="bg-white dark:bg-[#181B20] rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-[#2D333B] shadow-xs hover:shadow-md transition-all mb-4">
+      {/* Exercise Header with Animated GIF Demonstration */}
+      <div className="flex items-start justify-between gap-3 mb-3.5">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          {/* Animated Demonstration Illustration/GIF */}
+          <ExerciseAnimation exerciseName={exercise.name} className="w-16 h-16 shrink-0 shadow-xs" />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center flex-wrap gap-1.5 mb-1">
               <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: muscleStyle.dotColor }}
-              />
-              {muscleGroup}
-            </span>
-
-            {/* Watch Form Guide Button */}
-            <button
-              onClick={() => onOpenFormGuide(exercise)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:bg-[#A3E635]/15 dark:hover:bg-[#A3E635]/25 dark:text-[#A3E635] border border-blue-500/20 dark:border-[#A3E635]/30 transition-all active:scale-95 cursor-pointer"
-              title="Watch demonstration video & cues"
-            >
-              <PlayCircle className="w-3.5 h-3.5" />
-              <span>Watch Form</span>
-            </button>
-
-            {hasPrInCurrentSession && (
-              <span className="animate-pr-pop inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-rose-500 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm">
-                <Award className="w-3 h-3 stroke-[3]" /> NEW PR!
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${muscleStyle.badgeBg} ${muscleStyle.badgeText} ${muscleStyle.badgeBorder}`}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: muscleStyle.dotColor }}
+                />
+                {muscleGroup}
               </span>
+
+              {/* Watch Form Guide Button */}
+              <button
+                onClick={() => onOpenFormGuide(exercise)}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:bg-[#A3E635]/15 dark:hover:bg-[#A3E635]/25 dark:text-[#A3E635] border border-blue-500/20 dark:border-[#A3E635]/30 transition-all active:scale-95 cursor-pointer"
+                title="Watch video & cues"
+              >
+                <PlayCircle className="w-3 h-3" />
+                <span>Form</span>
+              </button>
+
+              {hasPrInCurrentSession && (
+                <span className="animate-pr-pop inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-rose-500 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs">
+                  <Award className="w-3 h-3 stroke-[3]" /> NEW PR!
+                </span>
+              )}
+            </div>
+
+            <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight truncate">
+              {exercise.name}
+            </h3>
+
+            {/* Previous Performance Reference */}
+            {previousRecord ? (
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <History className="w-3.5 h-3.5 text-blue-500 dark:text-[#A3E635] shrink-0" />
+                <span className="truncate">
+                  Best:{' '}
+                  <strong className="text-slate-800 dark:text-slate-200">
+                    {previousRecord.weight}kg × {previousRecord.reps}r
+                  </strong>
+                  {previousRecord.calculated1RM ? (
+                    <span className="text-slate-400 dark:text-slate-500 ml-1">
+                      (~{previousRecord.calculated1RM}kg 1RM)
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+                <Dumbbell className="w-3 h-3" /> First time logging
+              </div>
             )}
           </div>
-
-          <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight mt-1">
-            {exercise.name}
-          </h3>
-
-          {/* Previous Performance Reference */}
-          {previousRecord ? (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 dark:text-slate-400">
-              <History className="w-3.5 h-3.5 text-blue-500 dark:text-[#A3E635]" />
-              <span>
-                Previous best:{' '}
-                <strong className="text-slate-800 dark:text-slate-200">
-                  {previousRecord.weight} kg × {previousRecord.reps} reps
-                </strong>
-                {previousRecord.calculated1RM ? (
-                  <span className="text-slate-400 dark:text-slate-500 ml-1">
-                    (~{previousRecord.calculated1RM}kg 1RM)
-                  </span>
-                ) : null}
-              </span>
-            </div>
-          ) : (
-            <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-              <Dumbbell className="w-3 h-3" /> First time logging this exercise
-            </div>
-          )}
         </div>
 
         {onRemoveExercise && (
           <button
             onClick={() => onRemoveExercise(exercise.id)}
-            className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1.5 rounded-lg active:scale-90 transition-all"
+            className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1.5 rounded-lg active:scale-90 transition-all shrink-0"
             title="Remove exercise"
           >
             <Trash2 className="w-4 h-4" />
@@ -250,13 +258,29 @@ export default function ExerciseCard({
         })}
       </div>
 
-      {/* Add Set Button */}
-      <button
-        onClick={addSet}
-        className="w-full mt-3 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-[#22262E]/80 dark:hover:bg-[#22262E] text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-dashed border-slate-200 dark:border-[#2D333B] hover:border-blue-400 dark:hover:border-[#A3E635]/50 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider active:scale-98 transition-all"
-      >
-        <Plus className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Add Set
-      </button>
+      {/* Exercise Actions: Add Set & Exercise Transition Rest Timer */}
+      <div className="flex items-center gap-2 mt-3">
+        <button
+          onClick={addSet}
+          className="flex-1 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-[#22262E]/80 dark:hover:bg-[#22262E] text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-dashed border-slate-200 dark:border-[#2D333B] hover:border-blue-400 dark:hover:border-[#A3E635]/50 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider active:scale-98 transition-all"
+        >
+          <Plus className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Add Set
+        </button>
+
+        {!isLastExercise && (
+          <button
+            onClick={() => onStartTransitionTimer(exercise.name)}
+            className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all ${
+              allSetsCompleted
+                ? 'bg-blue-600 text-white border-blue-500 shadow-sm animate-pulse'
+                : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60'
+            }`}
+            title="Start 2-minute rest before next exercise"
+          >
+            <Timer className="w-4 h-4" /> Next Exercise Rest (2m)
+          </button>
+        )}
+      </div>
     </div>
   );
 }

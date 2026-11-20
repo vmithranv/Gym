@@ -1,11 +1,48 @@
 import React, { useState } from 'react';
-import { UtensilsCrossed, Plus, Target, Trash2, Flame, Droplets, Wheat, Beef } from 'lucide-react';
+import {
+  UtensilsCrossed,
+  Plus,
+  Target,
+  Trash2,
+  Flame,
+  Droplets,
+  Wheat,
+  Beef,
+  Search,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Sparkles
+} from 'lucide-react';
+import { DEFAULT_FOOD_LIBRARY } from '../utils/foodDatabase';
+import { loadFromStorage, saveToStorage } from '../utils/storage';
 
 export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
+  // Modal states
   const [showAddMealModal, setShowAddMealModal] = useState(false);
   const [showTargetModal, setShowTargetModal] = useState(false);
+  const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
 
-  // New Meal Form State
+  // Search & Filter state for built-in food library
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [customFoodMultiplier, setCustomFoodMultiplier] = useState({});
+
+  // User Custom Food items loaded from storage
+  const [customFoods, setCustomFoods] = useState(() =>
+    loadFromStorage('custom_food_library', [])
+  );
+
+  // New Custom Food Form State
+  const [newFoodName, setNewFoodName] = useState('');
+  const [newFoodCategory, setNewFoodCategory] = useState('Vegetarian');
+  const [newFoodServing, setNewFoodServing] = useState('100g');
+  const [newFoodCalories, setNewFoodCalories] = useState('');
+  const [newFoodProtein, setNewFoodProtein] = useState('');
+  const [newFoodCarbs, setNewFoodCarbs] = useState('');
+  const [newFoodFats, setNewFoodFats] = useState('');
+
+  // Manual Log Food Form State
   const [mealName, setMealName] = useState('');
   const [mealCalories, setMealCalories] = useState('');
   const [mealProtein, setMealProtein] = useState('');
@@ -27,6 +64,30 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
   const logs = nutritionData?.logs || [];
 
+  // Combine default library with user's saved custom foods
+  const allLibraryFoods = [...DEFAULT_FOOD_LIBRARY, ...customFoods];
+
+  // Categories list
+  const categories = [
+    'All',
+    'Grains & Carbs',
+    'Poultry',
+    'Fish & Seafood',
+    'Eggs & Dairy',
+    'Vegetarian',
+    'Supplements',
+    'Healthy Fats',
+    'Fruits & Carbs'
+  ];
+
+  const filteredFoods = allLibraryFoods.filter((food) => {
+    const matchesSearch =
+      food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      food.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCat = selectedCategory === 'All' || food.category === selectedCategory;
+    return matchesSearch && matchesCat;
+  });
+
   const totals = logs.reduce(
     (acc, meal) => ({
       calories: acc.calories + (Number(meal.calories) || 0),
@@ -37,7 +98,63 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
     { calories: 0, protein: 0, carbs: 0, fats: 0 }
   );
 
-  const handleAddMeal = (e) => {
+  // Fast 1-tap food logging from library
+  const handleQuickLogFood = (food, multiplier = 1) => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const multNum = Number(multiplier) || 1;
+    const portionSuffix = multNum === 1 ? '' : ` (${multNum}x serving)`;
+
+    const newMeal = {
+      id: `meal-${Date.now()}`,
+      time: timeStr,
+      name: `${food.name}${portionSuffix}`,
+      calories: Math.round(food.calories * multNum),
+      protein: Math.round(food.protein * multNum * 10) / 10,
+      carbs: Math.round(food.carbs * multNum * 10) / 10,
+      fats: Math.round(food.fats * multNum * 10) / 10
+    };
+
+    onUpdateNutrition({
+      ...nutritionData,
+      logs: [newMeal, ...logs]
+    });
+  };
+
+  // Add custom food to permanent library
+  const handleSaveCustomFood = (e) => {
+    e.preventDefault();
+    if (!newFoodName.trim()) return;
+
+    const newFoodItem = {
+      id: `custom-food-${Date.now()}`,
+      name: newFoodName.trim(),
+      category: newFoodCategory,
+      servingSize: newFoodServing.trim() || '1 serving',
+      calories: Number(newFoodCalories) || 0,
+      protein: Number(newFoodProtein) || 0,
+      carbs: Number(newFoodCarbs) || 0,
+      fats: Number(newFoodFats) || 0,
+      icon: '🍽️'
+    };
+
+    const updated = [newFoodItem, ...customFoods];
+    setCustomFoods(updated);
+    saveToStorage('custom_food_library', updated);
+
+    // Also immediately log it
+    handleQuickLogFood(newFoodItem, 1);
+
+    setNewFoodName('');
+    setNewFoodCalories('');
+    setNewFoodProtein('');
+    setNewFoodCarbs('');
+    setNewFoodFats('');
+    setShowCustomFoodModal(false);
+  };
+
+  const handleManualAddMeal = (e) => {
     e.preventDefault();
     if (!mealName.trim()) return;
 
@@ -94,21 +211,21 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
   };
 
   return (
-    <div className="space-y-4 pb-24 animate-in fade-in duration-200">
+    <div className="space-y-4 pb-28 animate-in fade-in duration-200">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <UtensilsCrossed className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Fuel & Recovery
+            <UtensilsCrossed className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Fuel & Nutrition
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Daily macronutrient tracker for optimal muscle recovery.
+            Calorie & macro tracker with built-in Indian & gym food library.
           </p>
         </div>
 
         <button
           onClick={() => setShowTargetModal(true)}
-          className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#22262E] hover:bg-slate-50 dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-xs"
+          className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#22262E] hover:bg-slate-50 dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
         >
           <Target className="w-3.5 h-3.5 text-blue-600 dark:text-[#A3E635]" /> Set Targets
         </button>
@@ -116,7 +233,6 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
       {/* Main Calories & Macro Overview Card */}
       <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs relative overflow-hidden">
-        {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-[#A3E635]/5 rounded-full blur-2xl pointer-events-none" />
 
         {/* Calories Highlight */}
@@ -207,19 +323,134 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
         </div>
       </div>
 
-      {/* Add Meal Trigger Button */}
+      {/* ─────────────────────────────────────────────────────────────
+          BUILT-IN FOOD & MACRO LIBRARY (SEARCH & 1-TAP LOGGING)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+              Food & Macro Library
+            </h3>
+          </div>
+
+          <button
+            onClick={() => setShowCustomFoodModal(true)}
+            className="px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" /> Custom Food
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search Chicken, Kerala Matta Rice, Eggs, Paneer..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200/80 dark:border-[#2D333B] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635]"
+          />
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1 rounded-xl whitespace-nowrap font-bold transition-all cursor-pointer ${
+                selectedCategory === cat
+                  ? 'bg-blue-600 dark:bg-[#A3E635] text-white dark:text-black shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#22262E] text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Food List Grid */}
+        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+          {filteredFoods.map((food) => {
+            const currentMult = customFoodMultiplier[food.id] || 1;
+
+            return (
+              <div
+                key={food.id}
+                className="p-3 bg-slate-50 dark:bg-[#22262E]/70 hover:bg-slate-100 dark:hover:bg-[#22262E] rounded-2xl border border-slate-100 dark:border-transparent transition-all flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-xl shrink-0">{food.icon || '🥣'}</span>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      {food.name}
+                    </h4>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-400 block font-medium">
+                      {food.servingSize} • <strong className="text-slate-700 dark:text-slate-200">{Math.round(food.calories * currentMult)} kcal</strong>
+                    </span>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+                      <span className="text-rose-500 font-bold">P: {Math.round(food.protein * currentMult)}g</span>
+                      <span className="text-amber-500 font-bold">C: {Math.round(food.carbs * currentMult)}g</span>
+                      <span className="text-sky-500 font-bold">F: {Math.round(food.fats * currentMult)}g</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Serving multiplier picker & 1-tap add */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <select
+                    value={currentMult}
+                    onChange={(e) =>
+                      setCustomFoodMultiplier({
+                        ...customFoodMultiplier,
+                        [food.id]: Number(e.target.value)
+                      })
+                    }
+                    className="px-1.5 py-1.5 bg-white dark:bg-[#181B20] text-slate-800 dark:text-white border border-slate-200 dark:border-[#2D333B] rounded-xl text-[10px] font-bold outline-none cursor-pointer"
+                  >
+                    <option value={0.5}>0.5x</option>
+                    <option value={1}>1x</option>
+                    <option value={1.5}>1.5x</option>
+                    <option value={2}>2x</option>
+                    <option value={3}>3x</option>
+                  </select>
+
+                  <button
+                    onClick={() => handleQuickLogFood(food, currentMult)}
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-[#A3E635] dark:hover:bg-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider active:scale-90 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                    title="1-tap log to today's macros"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" /> Log
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredFoods.length === 0 && (
+            <div className="py-6 text-center text-xs text-slate-400">
+              No matching food found. Tap "+ Custom Food" to save your recipe!
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Manual "+ Log Meal" Custom Button */}
       <button
         onClick={() => setShowAddMealModal(true)}
-        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-98 transition-all"
+        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-98 transition-all cursor-pointer"
       >
-        <Plus className="w-5 h-5 stroke-[3]" /> Log Meal / Snack
+        <Plus className="w-5 h-5 stroke-[3]" /> Quick Custom Food Log
       </button>
 
       {/* Today's Meals Log */}
       <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-slate-900 dark:text-white text-sm">Today's Meals ({logs.length})</h3>
-          <span className="text-xs text-slate-400">Fast entry</span>
+          <h3 className="font-bold text-slate-900 dark:text-white text-sm">Today's Logged Meals ({logs.length})</h3>
+          <span className="text-xs text-slate-400">Active entries</span>
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-[#22262E]">
@@ -240,7 +471,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
               <button
                 onClick={() => handleRemoveMeal(meal.id)}
-                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
                 title="Remove entry"
               >
                 <Trash2 className="w-4 h-4" />
@@ -250,29 +481,157 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
           {logs.length === 0 && (
             <div className="py-6 text-center text-xs text-slate-400">
-              No meals logged today yet. Tap "+ Log Meal" above.
+              No meals logged today yet. Tap any item in the library above to log instantly!
             </div>
           )}
         </div>
       </div>
 
-      {/* Add Meal Modal */}
-      {showAddMealModal && (
+      {/* Modal: Save Custom Food to Library */}
+      {showCustomFoodModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 text-slate-900 dark:text-white">
           <div className="bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] w-full max-w-md rounded-3xl p-5 shadow-2xl animate-in fade-in slide-in-from-bottom">
-            <h3 className="text-base font-black mb-3">Log Food or Meal</h3>
-            <form onSubmit={handleAddMeal} className="space-y-3">
+            <h3 className="text-base font-black mb-1">Add Food to Permanent Library</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Save your frequent home recipes or protein snacks to your personal library.
+            </p>
+            <form onSubmit={handleSaveCustomFood} className="space-y-3">
               <div>
                 <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
-                  Meal Name / Description
+                  Food Name
                 </label>
                 <input
                   type="text"
                   autoFocus
-                  placeholder="e.g. 4 Eggs + Sourdough Toast"
+                  placeholder="e.g. Kerala Beef Roast, Protein Shake..."
+                  value={newFoodName}
+                  onChange={(e) => setNewFoodName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
+                    Category
+                  </label>
+                  <select
+                    value={newFoodCategory}
+                    onChange={(e) => setNewFoodCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-semibold"
+                  >
+                    <option value="Grains & Carbs">Grains & Carbs</option>
+                    <option value="Poultry">Poultry</option>
+                    <option value="Fish & Seafood">Fish & Seafood</option>
+                    <option value="Eggs & Dairy">Eggs & Dairy</option>
+                    <option value="Vegetarian">Vegetarian</option>
+                    <option value="Supplements">Supplements</option>
+                    <option value="Healthy Fats">Healthy Fats</option>
+                    <option value="Fruits & Carbs">Fruits & Carbs</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
+                    Serving Size
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 100g or 1 cup"
+                    value={newFoodServing}
+                    onChange={(e) => setNewFoodServing(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
+                    Calories
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="220"
+                    value={newFoodCalories}
+                    onChange={(e) => setNewFoodCalories(e.target.value)}
+                    className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
+                    Protein
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="25"
+                    value={newFoodProtein}
+                    onChange={(e) => setNewFoodProtein(e.target.value)}
+                    className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
+                    Carbs
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="5"
+                    value={newFoodCarbs}
+                    onChange={(e) => setNewFoodCarbs(e.target.value)}
+                    className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
+                    Fats
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="8"
+                    value={newFoodFats}
+                    onChange={(e) => setNewFoodFats(e.target.value)}
+                    className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomFoodModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#22262E] text-slate-600 dark:text-slate-300 font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md"
+                >
+                  Save & Log Food
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Quick Manual Food Log */}
+      {showAddMealModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] w-full max-w-md rounded-3xl p-5 shadow-2xl animate-in fade-in slide-in-from-bottom">
+            <h3 className="text-base font-black mb-3">Quick Food Log</h3>
+            <form onSubmit={handleManualAddMeal} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
+                  Food Description
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. 2 Chapatis + Chicken Curry"
                   value={mealName}
                   onChange={(e) => setMealName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635] outline-none text-sm font-semibold"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
                 />
               </div>
 
