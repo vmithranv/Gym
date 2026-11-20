@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Check, Plus, Trash2, Award, History, Dumbbell } from 'lucide-react';
-import { calculate1RM } from '../utils/storage';
+import { Check, Plus, Trash2, Award, History, Dumbbell, PlayCircle } from 'lucide-react';
+import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
 
 export default function ExerciseCard({
   exercise,
@@ -8,7 +8,7 @@ export default function ExerciseCard({
   onRemoveExercise,
   previousRecord,
   onSetCompleted,
-  isPrTriggered
+  onOpenFormGuide
 }) {
   const [sets, setSets] = useState(
     exercise.sets && exercise.sets.length > 0
@@ -19,6 +19,9 @@ export default function ExerciseCard({
           { setNumber: 3, weight: previousRecord?.weight || 60, reps: previousRecord?.reps || 8, completed: false, isPr: false }
         ]
   );
+
+  const muscleGroup = exercise.muscleGroup || getExerciseMuscleGroup(exercise.name);
+  const muscleStyle = MUSCLE_GROUP_CONFIG[muscleGroup] || MUSCLE_GROUP_CONFIG.Other;
 
   const updateSetField = (index, field, value) => {
     const updated = sets.map((s, i) => {
@@ -83,43 +86,63 @@ export default function ExerciseCard({
     onUpdateExercise({ ...exercise, sets: filtered });
   };
 
-  // Check if any completed set is a PR
   const hasPrInCurrentSession = sets.some((s) => s.completed && s.isPr);
 
   return (
-    <div className="bg-[#181B20] rounded-2xl p-4 border border-[#2D333B] shadow-lg mb-4 transition-all">
+    <div className="bg-white dark:bg-[#181B20] rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-[#2D333B] shadow-sm hover:shadow-md transition-all mb-4">
       {/* Exercise Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-bold text-base text-white leading-tight">
-              {exercise.name}
-            </h3>
+          <div className="flex items-center flex-wrap gap-2 mb-1">
+            <span
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${muscleStyle.badgeBg} ${muscleStyle.badgeText} ${muscleStyle.badgeBorder}`}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: muscleStyle.dotColor }}
+              />
+              {muscleGroup}
+            </span>
+
+            {/* Watch Form Guide Button */}
+            <button
+              onClick={() => onOpenFormGuide(exercise)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:bg-[#A3E635]/15 dark:hover:bg-[#A3E635]/25 dark:text-[#A3E635] border border-blue-500/20 dark:border-[#A3E635]/30 transition-all active:scale-95 cursor-pointer"
+              title="Watch demonstration video & cues"
+            >
+              <PlayCircle className="w-3.5 h-3.5" />
+              <span>Watch Form</span>
+            </button>
+
             {hasPrInCurrentSession && (
-              <span className="animate-pr-pop inline-flex items-center gap-1 bg-[#A3E635] text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(163,230,53,0.5)]">
+              <span className="animate-pr-pop inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-rose-500 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm">
                 <Award className="w-3 h-3 stroke-[3]" /> NEW PR!
               </span>
             )}
           </div>
 
+          <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight mt-1">
+            {exercise.name}
+          </h3>
+
           {/* Previous Performance Reference */}
           {previousRecord ? (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
-              <History className="w-3.5 h-3.5 text-[#A3E635]" />
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <History className="w-3.5 h-3.5 text-blue-500 dark:text-[#A3E635]" />
               <span>
                 Previous best:{' '}
-                <strong className="text-slate-200">
+                <strong className="text-slate-800 dark:text-slate-200">
                   {previousRecord.weight} kg × {previousRecord.reps} reps
                 </strong>
                 {previousRecord.calculated1RM ? (
-                  <span className="text-slate-500 ml-1">
+                  <span className="text-slate-400 dark:text-slate-500 ml-1">
                     (~{previousRecord.calculated1RM}kg 1RM)
                   </span>
                 ) : null}
               </span>
             </div>
           ) : (
-            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
               <Dumbbell className="w-3 h-3" /> First time logging this exercise
             </div>
           )}
@@ -128,7 +151,7 @@ export default function ExerciseCard({
         {onRemoveExercise && (
           <button
             onClick={() => onRemoveExercise(exercise.id)}
-            className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg active:scale-90 transition-all"
+            className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1.5 rounded-lg active:scale-90 transition-all"
             title="Remove exercise"
           >
             <Trash2 className="w-4 h-4" />
@@ -137,7 +160,7 @@ export default function ExerciseCard({
       </div>
 
       {/* Sets Table Header */}
-      <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1 text-center">
+      <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1 text-center">
         <div className="col-span-2 text-left">SET</div>
         <div className="col-span-4">KG</div>
         <div className="col-span-4">REPS</div>
@@ -151,21 +174,27 @@ export default function ExerciseCard({
           return (
             <div
               key={idx}
-              className={`grid grid-cols-12 gap-2 items-center p-1.5 rounded-xl transition-all ${
-                isDone ? 'bg-[#22262E]/70 border border-[#A3E635]/30' : 'bg-[#0F1115]/50 border border-transparent'
+              className={`grid grid-cols-12 gap-2 items-center p-1.5 rounded-2xl transition-all ${
+                isDone
+                  ? 'bg-emerald-50/80 dark:bg-[#22262E]/70 border border-emerald-500/30 dark:border-[#A3E635]/30'
+                  : 'bg-slate-50 dark:bg-[#0F1115]/50 border border-slate-100 dark:border-transparent'
               }`}
             >
               {/* Set index */}
               <div className="col-span-2 text-left flex items-center gap-1 pl-1">
-                <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
-                  isDone ? 'bg-[#A3E635] text-black font-extrabold' : 'bg-[#22262E] text-slate-300'
-                }`}>
+                <span
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    isDone
+                      ? 'bg-emerald-500 dark:bg-[#A3E635] text-white dark:text-black font-extrabold'
+                      : 'bg-slate-200 dark:bg-[#22262E] text-slate-700 dark:text-slate-300'
+                  }`}
+                >
                   {set.setNumber}
                 </span>
                 {sets.length > 1 && !isDone && (
                   <button
                     onClick={() => removeSet(idx)}
-                    className="text-slate-600 hover:text-red-400 p-0.5 text-xs opacity-40 hover:opacity-100"
+                    className="text-slate-400 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 p-0.5 text-xs opacity-50 hover:opacity-100"
                     title="Delete set"
                   >
                     ×
@@ -175,34 +204,30 @@ export default function ExerciseCard({
 
               {/* Weight Input (Thumb-friendly) */}
               <div className="col-span-4">
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    value={set.weight}
-                    disabled={isDone}
-                    onChange={(e) => updateSetField(idx, 'weight', e.target.value)}
-                    className={`w-full text-center font-mono font-bold text-base py-2.5 rounded-xl bg-[#22262E] text-white focus:outline-none focus:ring-2 focus:ring-[#A3E635] transition-all disabled:opacity-60 disabled:cursor-not-allowed`}
-                    placeholder="0"
-                  />
-                </div>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={set.weight}
+                  disabled={isDone}
+                  onChange={(e) => updateSetField(idx, 'weight', e.target.value)}
+                  className="w-full text-center font-mono font-bold text-base py-2.5 rounded-xl bg-white dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635] shadow-xs disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                  placeholder="0"
+                />
               </div>
 
               {/* Reps Input (Thumb-friendly) */}
               <div className="col-span-4">
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="1"
-                    min="1"
-                    value={set.reps}
-                    disabled={isDone}
-                    onChange={(e) => updateSetField(idx, 'reps', e.target.value)}
-                    className={`w-full text-center font-mono font-bold text-base py-2.5 rounded-xl bg-[#22262E] text-white focus:outline-none focus:ring-2 focus:ring-[#A3E635] transition-all disabled:opacity-60 disabled:cursor-not-allowed`}
-                    placeholder="0"
-                  />
-                </div>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={set.reps}
+                  disabled={isDone}
+                  onChange={(e) => updateSetField(idx, 'reps', e.target.value)}
+                  className="w-full text-center font-mono font-bold text-base py-2.5 rounded-xl bg-white dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635] shadow-xs disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                  placeholder="0"
+                />
               </div>
 
               {/* Checkmark Button */}
@@ -212,8 +237,8 @@ export default function ExerciseCard({
                   onClick={() => toggleSetComplete(idx)}
                   className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-90 ${
                     isDone
-                      ? 'bg-[#A3E635] text-black shadow-[0_0_15px_rgba(163,230,53,0.4)]'
-                      : 'bg-[#22262E] text-slate-500 hover:text-white hover:border-[#A3E635]/40 border border-[#2D333B]'
+                      ? 'bg-emerald-500 dark:bg-[#A3E635] text-white dark:text-black shadow-md shadow-emerald-500/20 dark:shadow-[#A3E635]/20'
+                      : 'bg-white dark:bg-[#22262E] text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-[#2D333B]'
                   }`}
                   aria-label="Toggle completed set"
                 >
@@ -228,9 +253,9 @@ export default function ExerciseCard({
       {/* Add Set Button */}
       <button
         onClick={addSet}
-        className="w-full mt-3 py-2.5 rounded-xl bg-[#22262E]/80 hover:bg-[#22262E] text-slate-300 hover:text-white border border-dashed border-[#2D333B] hover:border-[#A3E635]/50 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider active:scale-98 transition-all"
+        className="w-full mt-3 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-[#22262E]/80 dark:hover:bg-[#22262E] text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-dashed border-slate-200 dark:border-[#2D333B] hover:border-blue-400 dark:hover:border-[#A3E635]/50 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider active:scale-98 transition-all"
       >
-        <Plus className="w-4 h-4 text-[#A3E635]" /> Add Set
+        <Plus className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Add Set
       </button>
     </div>
   );

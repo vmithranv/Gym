@@ -15,10 +15,31 @@ import WorkoutTab from './components/WorkoutTab';
 import RoutinesTab from './components/RoutinesTab';
 import ProgressTab from './components/ProgressTab';
 import NutritionTab from './components/NutritionTab';
-import { Dumbbell, ShieldCheck, WifiOff } from 'lucide-react';
+import ExerciseFormModal from './components/ExerciseFormModal';
+import { Dumbbell, Sun, Moon, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('workout');
+
+  // Theme Mode: 'light' or 'dark' (Default to colorful vibrant light mode)
+  const [theme, setTheme] = useState(() => {
+    return loadFromStorage('theme', 'light');
+  });
+
+  const isDark = theme === 'dark';
+
+  // Toggle theme and update HTML root class
+  useEffect(() => {
+    saveToStorage('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Selected exercise for form demonstration modal
+  const [selectedGuideExercise, setSelectedGuideExercise] = useState(null);
 
   // Application State backed by localStorage
   const [routines, setRoutines] = useState(() =>
@@ -43,7 +64,7 @@ export default function App() {
     loadFromStorage('active_session', null)
   );
 
-  // Sync to localStorage
+  // Sync state to localStorage
   useEffect(() => {
     saveToStorage('routines', routines);
   }, [routines]);
@@ -72,7 +93,10 @@ export default function App() {
     saveToStorage('active_session', activeSession);
   }, [activeSession]);
 
-  // Handler when user finishes a workout
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   const handleSaveWorkout = (completedWorkout) => {
     const finishedWorkoutObj = {
       ...completedWorkout,
@@ -81,13 +105,11 @@ export default function App() {
     setWorkoutHistory((prev) => [finishedWorkoutObj, ...prev]);
   };
 
-  // Handler when a new PR is recorded
   const handleRecordPr = (exerciseName, weight, reps) => {
     const calculated = calculate1RM(weight, reps);
     const now = new Date();
     const dateStr = `${now.getMonth() + 1}/${now.getDate() < 10 ? '0' : ''}${now.getDate()}`;
 
-    // Update records dictionary
     const newRecords = {
       ...records,
       [exerciseName]: {
@@ -99,7 +121,6 @@ export default function App() {
     };
     setRecords(newRecords);
 
-    // Update progression history for chart
     const existingList = progressionData[exerciseName] || [];
     const updatedProgression = {
       ...progressionData,
@@ -108,16 +129,16 @@ export default function App() {
     setProgressionData(updatedProgression);
   };
 
-  // Handler for adding a new body weight record
   const handleAddBodyWeight = (newEntry) => {
     setWeightHistory((prev) => [...prev, newEntry]);
   };
 
-  // Launch a routine from Routines tab into active workout
   const handleStartRoutineNow = (routine) => {
     const initialExercises = (routine.exercises || []).map((ex, idx) => ({
       id: `${ex.id}-${Date.now()}-${idx}`,
       name: ex.name,
+      muscleGroup: ex.muscleGroup,
+      customVideoUrl: ex.customVideoUrl || '',
       sets: Array.from({ length: ex.targetSets || 3 }).map((_, sIdx) => ({
         setNumber: sIdx + 1,
         weight: records[ex.name]?.weight || 60,
@@ -139,27 +160,43 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F1115] text-white flex flex-col font-sans max-w-lg mx-auto shadow-2xl relative border-x border-[#2D333B]/40">
-      {/* Top Mobile App Header */}
-      <header className="sticky top-0 z-30 bg-[#0F1115]/95 backdrop-blur-md px-4 py-3 border-b border-[#2D333B]/70 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F1115] text-slate-900 dark:text-white flex flex-col font-sans max-w-lg mx-auto shadow-2xl relative border-x border-slate-200/80 dark:border-[#2D333B]/40 transition-colors duration-200">
+      {/* Top Header */}
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0F1115]/90 backdrop-blur-md px-4 py-3 border-b border-slate-200/80 dark:border-[#2D333B]/70 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#A3E635] to-lime-500 flex items-center justify-center text-black font-black shadow-[0_0_15px_rgba(163,230,53,0.35)]">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 dark:from-[#A3E635] dark:to-lime-500 flex items-center justify-center text-white dark:text-black font-black shadow-md shadow-blue-500/20 dark:shadow-[0_0_15px_rgba(163,230,53,0.35)]">
             <Dumbbell className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-wider uppercase text-white flex items-center gap-1.5 leading-none">
-              IRON<span className="text-[#A3E635]">PULSE</span>
+            <h1 className="text-lg font-black tracking-wider uppercase text-slate-900 dark:text-white flex items-center gap-1.5 leading-none">
+              IRON<span className="text-blue-600 dark:text-[#A3E635]">PULSE</span>
             </h1>
-            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase">
               Pro Gym Companion
             </span>
           </div>
         </div>
 
-        {/* Offline & PWA Indicator */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#181B20] border border-[#2D333B] text-[11px] text-slate-300 font-semibold">
-          <span className="w-2 h-2 rounded-full bg-[#A3E635] animate-pulse" />
-          <span>Local Storage</span>
+        {/* Right Header Actions: Theme Toggle & Storage Status */}
+        <div className="flex items-center gap-2">
+          {/* Theme Switcher Button */}
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-[#181B20] dark:hover:bg-[#22262E] border border-slate-200/80 dark:border-[#2D333B] text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 cursor-pointer shadow-xs"
+            title={`Switch to ${isDark ? 'Vibrant Light Mode' : 'Neon Dark Mode'}`}
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px]">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="text-[11px]">Dark</span>
+              </>
+            )}
+          </button>
         </div>
       </header>
 
@@ -173,6 +210,7 @@ export default function App() {
             records={records}
             onSaveWorkout={handleSaveWorkout}
             onRecordPr={handleRecordPr}
+            onOpenFormGuide={setSelectedGuideExercise}
           />
         )}
 
@@ -181,6 +219,7 @@ export default function App() {
             routines={routines}
             onUpdateRoutines={setRoutines}
             onStartRoutineNow={handleStartRoutineNow}
+            onOpenFormGuide={setSelectedGuideExercise}
           />
         )}
 
@@ -191,6 +230,7 @@ export default function App() {
             progressionData={progressionData}
             weightHistory={weightHistory}
             onAddBodyWeight={handleAddBodyWeight}
+            isDark={isDark}
           />
         )}
 
@@ -201,6 +241,14 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Exercise Form Demonstration Modal */}
+      {selectedGuideExercise && (
+        <ExerciseFormModal
+          exercise={selectedGuideExercise}
+          onClose={() => setSelectedGuideExercise(null)}
+        />
+      )}
 
       {/* Fixed Bottom Navigation */}
       <BottomNav

@@ -6,7 +6,6 @@ import {
   Award,
   Scale,
   Plus,
-  Calendar,
   Layers,
   ChevronDown
 } from 'lucide-react';
@@ -25,13 +24,13 @@ export default function ProgressTab({
   records = {},
   progressionData = {},
   weightHistory = [],
-  onAddBodyWeight
+  onAddBodyWeight,
+  isDark
 }) {
   const [selectedExercise, setSelectedExercise] = useState('Barbell Flat Bench Press');
   const [newWeightInput, setNewWeightInput] = useState('');
   const [showWeightModal, setShowWeightModal] = useState(false);
 
-  // Compute Total Volume lifted across all workouts
   const totalVolumeKg = workoutHistory.reduce((sum, workout) => {
     const workoutVol = (workout.exercises || []).reduce((eSum, ex) => {
       const exVol = (ex.sets || []).reduce((sSum, set) => {
@@ -43,12 +42,11 @@ export default function ProgressTab({
       return eSum + exVol;
     }, 0);
     return sum + workoutVol;
-  }, 14850); // Start with baseline historical volume
+  }, 14850);
 
   const totalWorkouts = Math.max(workoutHistory.length + 18, 19);
-  const currentStreak = 4; // 4 consecutive active gym days
+  const currentStreak = 4;
 
-  // Get list of available exercises for 1RM chart
   const availableExercises = Array.from(
     new Set([...Object.keys(progressionData), ...Object.keys(records)])
   );
@@ -77,66 +75,71 @@ export default function ProgressTab({
 
   const latestBodyWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 79.2;
 
+  const gridColor = isDark ? '#2D333B' : '#E2E8F0';
+  const axisColor = isDark ? '#64748B' : '#94A3B8';
+  const primaryStroke = isDark ? '#A3E635' : '#2563EB'; // Lime in dark, Royal Blue in light
+  const secondaryStroke = isDark ? '#38BDF8' : '#0EA5E9';
+
   return (
     <div className="space-y-4 pb-24 animate-in fade-in duration-200">
       {/* Top Header */}
       <div>
-        <h2 className="text-xl font-black text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#A3E635]" /> Strength & Progress
+        <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Strength & Progress
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Estimated 1-Rep Max (1RM) trends & body weight tracking.
         </p>
       </div>
 
-      {/* 3 Summary Stats Cards */}
+      {/* 3 Summary Stats Cards with Colorful Vibrant Gradients */}
       <div className="grid grid-cols-3 gap-2.5">
-        <div className="bg-[#181B20] border border-[#2D333B] p-3 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Workouts</span>
-            <Dumbbell className="w-3.5 h-3.5 text-[#A3E635]" />
+        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-3.5 rounded-3xl shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-blue-100 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider">Workouts</span>
+            <Dumbbell className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="text-xl font-black text-white leading-tight font-mono">{totalWorkouts}</div>
-            <div className="text-[10px] text-slate-500 font-medium">Logged sessions</div>
+            <div className="text-[10px] text-blue-100 font-medium">Logged</div>
           </div>
         </div>
 
-        <div className="bg-[#181B20] border border-[#2D333B] p-3 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Streak</span>
-            <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-3.5 rounded-3xl shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-amber-100 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider">Streak</span>
+            <Flame className="w-4 h-4 text-white fill-white" />
           </div>
           <div>
-            <div className="text-xl font-black text-[#A3E635] leading-tight font-mono">
+            <div className="text-xl font-black text-white leading-tight font-mono">
               {currentStreak} Days
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Consistency</div>
+            <div className="text-[10px] text-amber-100 font-medium">Active fire</div>
           </div>
         </div>
 
-        <div className="bg-[#181B20] border border-[#2D333B] p-3 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Volume</span>
-            <Layers className="w-3.5 h-3.5 text-blue-400" />
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-3.5 rounded-3xl shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-emerald-100 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider">Volume</span>
+            <Layers className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="text-xl font-black text-white leading-tight font-mono">
               {(totalVolumeKg / 1000).toFixed(1)}t
             </div>
-            <div className="text-[10px] text-slate-500 font-medium">Tonnes lifted</div>
+            <div className="text-[10px] text-emerald-100 font-medium">Tonnes lifted</div>
           </div>
         </div>
       </div>
 
       {/* Strength Progression Chart */}
-      <div className="bg-[#181B20] border border-[#2D333B] rounded-2xl p-4 shadow-lg">
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#A3E635] block">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 dark:text-[#A3E635] block">
               1RM Strength Curve
             </span>
-            <h3 className="font-bold text-white text-sm">Estimated 1-Rep Max (kg)</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Estimated 1-Rep Max (kg)</h3>
           </div>
 
           {/* Exercise Selector */}
@@ -144,7 +147,7 @@ export default function ProgressTab({
             <select
               value={selectedExercise}
               onChange={(e) => setSelectedExercise(e.target.value)}
-              className="w-full sm:w-auto px-3 py-1.5 pr-8 bg-[#22262E] text-white border border-[#2D333B] rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#A3E635] appearance-none cursor-pointer"
+              className="w-full sm:w-auto px-3 py-1.5 pr-8 bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none cursor-pointer"
             >
               {availableExercises.map((exName) => (
                 <option key={exName} value={exName}>
@@ -160,32 +163,32 @@ export default function ProgressTab({
         <div className="h-52 w-full mt-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={activeChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2D333B" vertical={false} />
-              <XAxis dataKey="date" stroke="#64748B" fontSize={11} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+              <XAxis dataKey="date" stroke={axisColor} fontSize={11} tickLine={false} />
               <YAxis
-                stroke="#64748B"
+                stroke={axisColor}
                 fontSize={11}
                 tickLine={false}
                 domain={['dataMin - 5', 'dataMax + 5']}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#181B20',
-                  borderColor: '#2D333B',
+                  backgroundColor: isDark ? '#181B20' : '#FFFFFF',
+                  borderColor: isDark ? '#2D333B' : '#E2E8F0',
                   borderRadius: '12px',
-                  color: '#fff',
+                  color: isDark ? '#FFFFFF' : '#0F172A',
                   fontSize: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
                 }}
                 formatter={(val) => [`${val} kg`, 'Estimated 1RM']}
               />
               <Line
                 type="monotone"
                 dataKey="oneRepMax"
-                stroke="#A3E635"
+                stroke={primaryStroke}
                 strokeWidth={3}
-                dot={{ fill: '#0F1115', stroke: '#A3E635', strokeWidth: 2, r: 4 }}
-                activeDot={{ fill: '#A3E635', stroke: '#fff', strokeWidth: 2, r: 6 }}
+                dot={{ fill: isDark ? '#0F1115' : '#FFFFFF', stroke: primaryStroke, strokeWidth: 2, r: 4 }}
+                activeDot={{ fill: primaryStroke, stroke: '#fff', strokeWidth: 2, r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -193,45 +196,45 @@ export default function ProgressTab({
       </div>
 
       {/* Body Weight Trend Tracker */}
-      <div className="bg-[#181B20] border border-[#2D333B] rounded-2xl p-4 shadow-lg">
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 Body Composition
               </span>
-              <span className="text-xs font-mono font-bold text-white bg-[#22262E] px-2 py-0.5 rounded-md">
+              <span className="text-xs font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-[#22262E] px-2 py-0.5 rounded-md">
                 Current: {latestBodyWeight} kg
               </span>
             </div>
-            <h3 className="font-bold text-white text-sm mt-0.5">Weight Trend Tracker</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">Weight Trend Tracker</h3>
           </div>
 
           <button
             onClick={() => setShowWeightModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-[#22262E] hover:bg-[#2D333B] text-slate-200 border border-[#2D333B] text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
+            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
           >
-            <Plus className="w-3.5 h-3.5 text-[#A3E635]" /> Log Weight
+            <Plus className="w-3.5 h-3.5 text-blue-600 dark:text-[#A3E635]" /> Log Weight
           </button>
         </div>
 
         <div className="h-44 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={weightHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2D333B" vertical={false} />
-              <XAxis dataKey="date" stroke="#64748B" fontSize={11} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+              <XAxis dataKey="date" stroke={axisColor} fontSize={11} tickLine={false} />
               <YAxis
-                stroke="#64748B"
+                stroke={axisColor}
                 fontSize={11}
                 tickLine={false}
                 domain={['dataMin - 1', 'dataMax + 1']}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#181B20',
-                  borderColor: '#2D333B',
+                  backgroundColor: isDark ? '#181B20' : '#FFFFFF',
+                  borderColor: isDark ? '#2D333B' : '#E2E8F0',
                   borderRadius: '12px',
-                  color: '#fff',
+                  color: isDark ? '#FFFFFF' : '#0F172A',
                   fontSize: '12px'
                 }}
                 formatter={(val) => [`${val} kg`, 'Body Weight']}
@@ -239,10 +242,10 @@ export default function ProgressTab({
               <Line
                 type="monotone"
                 dataKey="weight"
-                stroke="#38BDF8"
+                stroke={secondaryStroke}
                 strokeWidth={2.5}
-                dot={{ fill: '#0F1115', stroke: '#38BDF8', strokeWidth: 2, r: 3.5 }}
-                activeDot={{ fill: '#38BDF8', stroke: '#fff', strokeWidth: 2, r: 5 }}
+                dot={{ fill: isDark ? '#0F1115' : '#FFFFFF', stroke: secondaryStroke, strokeWidth: 2, r: 3.5 }}
+                activeDot={{ fill: secondaryStroke, stroke: '#fff', strokeWidth: 2, r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -251,12 +254,12 @@ export default function ProgressTab({
 
       {/* Log Weight Modal */}
       {showWeightModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#181B20] border border-[#2D333B] w-full max-w-sm rounded-3xl p-5 shadow-2xl">
-            <h3 className="text-base font-black text-white mb-1 flex items-center gap-2">
-              <Scale className="w-4 h-4 text-[#A3E635]" /> Log Morning Weight
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+            <h3 className="text-base font-black mb-1 flex items-center gap-2">
+              <Scale className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Log Morning Weight
             </h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Weigh yourself under consistent conditions (fasted upon waking).
             </p>
             <form onSubmit={handleAddWeight} className="space-y-4">
@@ -268,7 +271,7 @@ export default function ProgressTab({
                   placeholder="e.g. 79.5"
                   value={newWeightInput}
                   onChange={(e) => setNewWeightInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-[#22262E] text-white border border-[#2D333B] focus:outline-none focus:ring-2 focus:ring-[#A3E635] font-mono font-bold text-lg text-center"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635] font-mono font-bold text-lg text-center outline-none"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">
                   KG
@@ -278,13 +281,13 @@ export default function ProgressTab({
                 <button
                   type="button"
                   onClick={() => setShowWeightModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#22262E] text-slate-300 font-bold text-xs"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#22262E] text-slate-600 dark:text-slate-300 font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#A3E635] text-black font-extrabold text-xs uppercase tracking-wider hover:bg-lime-400"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider shadow-md hover:opacity-90"
                 >
                   Save Entry
                 </button>

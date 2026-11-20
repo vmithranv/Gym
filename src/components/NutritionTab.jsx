@@ -27,7 +27,6 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
   const logs = nutritionData?.logs || [];
 
-  // Sum current intake
   const totals = logs.reduce(
     (acc, meal) => ({
       calories: acc.calories + (Number(meal.calories) || 0),
@@ -99,72 +98,72 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-black text-white flex items-center gap-2">
-            <UtensilsCrossed className="w-5 h-5 text-[#A3E635]" /> Fuel & Recovery
+          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <UtensilsCrossed className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Fuel & Recovery
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Daily macronutrient tracker for optimal muscle hypertrophy.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Daily macronutrient tracker for optimal muscle recovery.
           </p>
         </div>
 
         <button
           onClick={() => setShowTargetModal(true)}
-          className="px-3 py-1.5 rounded-xl bg-[#22262E] hover:bg-[#2D333B] text-slate-300 hover:text-white border border-[#2D333B] text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
+          className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#22262E] hover:bg-slate-50 dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-xs"
         >
-          <Target className="w-3.5 h-3.5 text-[#A3E635]" /> Set Targets
+          <Target className="w-3.5 h-3.5 text-blue-600 dark:text-[#A3E635]" /> Set Targets
         </button>
       </div>
 
       {/* Main Calories & Macro Overview Card */}
-      <div className="bg-[#181B20] border border-[#2D333B] rounded-3xl p-5 shadow-xl relative overflow-hidden">
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs relative overflow-hidden">
         {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#A3E635]/5 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-[#A3E635]/5 rounded-full blur-2xl pointer-events-none" />
 
         {/* Calories Highlight */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#A3E635] flex items-center gap-1">
-              <Flame className="w-3.5 h-3.5 fill-[#A3E635]" /> Energy Target
+            <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-[#A3E635] flex items-center gap-1">
+              <Flame className="w-3.5 h-3.5 fill-current" /> Daily Target
             </span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-black text-white font-mono">{totals.calories}</span>
-              <span className="text-slate-400 text-xs font-bold">/ {targets.calories} kcal</span>
+              <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{totals.calories}</span>
+              <span className="text-slate-400 dark:text-slate-500 text-xs font-bold">/ {targets.calories} kcal</span>
             </div>
           </div>
 
           <div className="text-right">
-            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-[#A3E635]/20 text-[#A3E635] border border-[#A3E635]/30">
+            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-[#A3E635]/20 dark:text-[#A3E635] border border-blue-200 dark:border-[#A3E635]/30">
               {calculatePercent(totals.calories, targets.calories)}%
             </span>
-            <span className="block text-[11px] text-slate-500 mt-1">
+            <span className="block text-[11px] text-slate-400 dark:text-slate-500 mt-1">
               {Math.max(0, targets.calories - totals.calories)} kcal left
             </span>
           </div>
         </div>
 
         {/* Calories Master Bar */}
-        <div className="w-full h-3 bg-[#22262E] rounded-full overflow-hidden mb-6 p-0.5">
+        <div className="w-full h-3 bg-slate-100 dark:bg-[#22262E] rounded-full overflow-hidden mb-6 p-0.5">
           <div
-            className="h-full bg-gradient-to-r from-[#A3E635] to-lime-300 rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(163,230,53,0.4)]"
+            className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 dark:from-[#A3E635] dark:to-lime-300 rounded-full transition-all duration-500 shadow-sm"
             style={{ width: `${calculatePercent(totals.calories, targets.calories)}%` }}
           />
         </div>
 
         {/* 3 Macro Progress Bars */}
-        <div className="space-y-3.5 pt-2 border-t border-[#22262E]">
+        <div className="space-y-3.5 pt-2 border-t border-slate-100 dark:border-[#22262E]">
           {/* Protein */}
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                <Beef className="w-3.5 h-3.5 text-red-400" /> Protein (g)
+              <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <Beef className="w-3.5 h-3.5 text-rose-500" /> Protein (g)
               </span>
-              <span className="font-mono text-slate-300">
-                <strong className="text-white">{totals.protein}</strong> / {targets.protein}g ({calculatePercent(totals.protein, targets.protein)}%)
+              <span className="font-mono text-slate-500 dark:text-slate-300">
+                <strong className="text-slate-900 dark:text-white">{totals.protein}</strong> / {targets.protein}g ({calculatePercent(totals.protein, targets.protein)}%)
               </span>
             </div>
-            <div className="w-full h-2 bg-[#22262E] rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-slate-100 dark:bg-[#22262E] rounded-full overflow-hidden">
               <div
-                className="h-full bg-red-400 rounded-full transition-all duration-500"
+                className="h-full bg-rose-500 rounded-full transition-all duration-500"
                 style={{ width: `${calculatePercent(totals.protein, targets.protein)}%` }}
               />
             </div>
@@ -173,16 +172,16 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
           {/* Carbs */}
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                <Wheat className="w-3.5 h-3.5 text-amber-400" /> Carbs (g)
+              <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <Wheat className="w-3.5 h-3.5 text-amber-500" /> Carbs (g)
               </span>
-              <span className="font-mono text-slate-300">
-                <strong className="text-white">{totals.carbs}</strong> / {targets.carbs}g ({calculatePercent(totals.carbs, targets.carbs)}%)
+              <span className="font-mono text-slate-500 dark:text-slate-300">
+                <strong className="text-slate-900 dark:text-white">{totals.carbs}</strong> / {targets.carbs}g ({calculatePercent(totals.carbs, targets.carbs)}%)
               </span>
             </div>
-            <div className="w-full h-2 bg-[#22262E] rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-slate-100 dark:bg-[#22262E] rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                className="h-full bg-amber-500 rounded-full transition-all duration-500"
                 style={{ width: `${calculatePercent(totals.carbs, targets.carbs)}%` }}
               />
             </div>
@@ -191,16 +190,16 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
           {/* Fats */}
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                <Droplets className="w-3.5 h-3.5 text-blue-400" /> Fats (g)
+              <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                <Droplets className="w-3.5 h-3.5 text-sky-500" /> Fats (g)
               </span>
-              <span className="font-mono text-slate-300">
-                <strong className="text-white">{totals.fats}</strong> / {targets.fats}g ({calculatePercent(totals.fats, targets.fats)}%)
+              <span className="font-mono text-slate-500 dark:text-slate-300">
+                <strong className="text-slate-900 dark:text-white">{totals.fats}</strong> / {targets.fats}g ({calculatePercent(totals.fats, targets.fats)}%)
               </span>
             </div>
-            <div className="w-full h-2 bg-[#22262E] rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-slate-100 dark:bg-[#22262E] rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-400 rounded-full transition-all duration-500"
+                className="h-full bg-sky-500 rounded-full transition-all duration-500"
                 style={{ width: `${calculatePercent(totals.fats, targets.fats)}%` }}
               />
             </div>
@@ -211,28 +210,28 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
       {/* Add Meal Trigger Button */}
       <button
         onClick={() => setShowAddMealModal(true)}
-        className="w-full py-3.5 rounded-2xl bg-[#A3E635] text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(163,230,53,0.3)] hover:bg-lime-400 active:scale-98 transition-all"
+        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-98 transition-all"
       >
         <Plus className="w-5 h-5 stroke-[3]" /> Log Meal / Snack
       </button>
 
       {/* Today's Meals Log */}
-      <div className="bg-[#181B20] border border-[#2D333B] rounded-2xl p-4 shadow-lg">
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-white text-sm">Today's Meals ({logs.length})</h3>
-          <span className="text-xs text-slate-500">Fast entry</span>
+          <h3 className="font-bold text-slate-900 dark:text-white text-sm">Today's Meals ({logs.length})</h3>
+          <span className="text-xs text-slate-400">Fast entry</span>
         </div>
 
-        <div className="divide-y divide-[#22262E]">
+        <div className="divide-y divide-slate-100 dark:divide-[#22262E]">
           {logs.map((meal) => (
             <div key={meal.id} className="py-3 flex items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-slate-400">{meal.time}</span>
-                  <span className="font-bold text-sm text-white">{meal.name}</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">{meal.name}</span>
                 </div>
-                <div className="flex items-center gap-2.5 mt-1 text-[11px] text-slate-400">
-                  <span className="text-[#A3E635] font-semibold">{meal.calories} kcal</span>
+                <div className="flex items-center gap-2.5 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="text-blue-600 dark:text-[#A3E635] font-semibold">{meal.calories} kcal</span>
                   <span>P: {meal.protein}g</span>
                   <span>C: {meal.carbs}g</span>
                   <span>F: {meal.fats}g</span>
@@ -241,7 +240,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
               <button
                 onClick={() => handleRemoveMeal(meal.id)}
-                className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
                 title="Remove entry"
               >
                 <Trash2 className="w-4 h-4" />
@@ -250,8 +249,8 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
           ))}
 
           {logs.length === 0 && (
-            <div className="py-6 text-center text-xs text-slate-500">
-              No meals logged today yet. Hit "+ Log Meal" above.
+            <div className="py-6 text-center text-xs text-slate-400">
+              No meals logged today yet. Tap "+ Log Meal" above.
             </div>
           )}
         </div>
@@ -259,12 +258,12 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
       {/* Add Meal Modal */}
       {showAddMealModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#181B20] border border-[#2D333B] w-full max-w-md rounded-3xl p-5 shadow-2xl animate-in fade-in slide-in-from-bottom">
-            <h3 className="text-base font-black text-white mb-3">Log Food or Meal</h3>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] w-full max-w-md rounded-3xl p-5 shadow-2xl animate-in fade-in slide-in-from-bottom">
+            <h3 className="text-base font-black mb-3">Log Food or Meal</h3>
             <form onSubmit={handleAddMeal} className="space-y-3">
               <div>
-                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
                   Meal Name / Description
                 </label>
                 <input
@@ -273,13 +272,13 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                   placeholder="e.g. 4 Eggs + Sourdough Toast"
                   value={mealName}
                   onChange={(e) => setMealName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#22262E] text-white border border-[#2D333B] focus:ring-2 focus:ring-[#A3E635] outline-none text-sm font-semibold"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635] outline-none text-sm font-semibold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-0.5">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
                     Calories (kcal)
                   </label>
                   <input
@@ -287,11 +286,11 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                     placeholder="450"
                     value={mealCalories}
                     onChange={(e) => setMealCalories(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] text-sm font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-sm font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-0.5">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
                     Protein (g)
                   </label>
                   <input
@@ -299,11 +298,11 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                     placeholder="35"
                     value={mealProtein}
                     onChange={(e) => setMealProtein(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] text-sm font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-sm font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-0.5">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
                     Carbs (g)
                   </label>
                   <input
@@ -311,11 +310,11 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                     placeholder="40"
                     value={mealCarbs}
                     onChange={(e) => setMealCarbs(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] text-sm font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-sm font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-0.5">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-0.5">
                     Fats (g)
                   </label>
                   <input
@@ -323,7 +322,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                     placeholder="12"
                     value={mealFats}
                     onChange={(e) => setMealFats(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] text-sm font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-sm font-mono font-bold"
                   />
                 </div>
               </div>
@@ -332,13 +331,13 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                 <button
                   type="button"
                   onClick={() => setShowAddMealModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#22262E] text-slate-300 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#22262E] text-slate-600 dark:text-slate-300 font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#A3E635] text-black font-extrabold text-xs uppercase tracking-wider hover:bg-lime-400"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md"
                 >
                   Save Meal
                 </button>
@@ -350,58 +349,58 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
       {/* Target Customization Modal */}
       {showTargetModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#181B20] border border-[#2D333B] w-full max-w-md rounded-3xl p-5 shadow-2xl">
-            <h3 className="text-base font-black text-white mb-1 flex items-center gap-2">
-              <Target className="w-4 h-4 text-[#A3E635]" /> Daily Macro Targets
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] w-full max-w-md rounded-3xl p-5 shadow-2xl">
+            <h3 className="text-base font-black mb-1 flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Daily Macro Targets
             </h3>
-            <p className="text-xs text-slate-400 mb-3">
-              Configure your daily nutritional goals for your current cutting or bulking phase.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Configure daily nutritional goals for cutting, maintenance, or lean bulking.
             </p>
             <form onSubmit={handleSaveTargets} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
                     Daily Calories (kcal)
                   </label>
                   <input
                     type="number"
                     value={targetCalories}
                     onChange={(e) => setTargetCalories(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] font-mono font-bold text-sm"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] font-mono font-bold text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
                     Protein Target (g)
                   </label>
                   <input
                     type="number"
                     value={targetProtein}
                     onChange={(e) => setTargetProtein(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] font-mono font-bold text-sm"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] font-mono font-bold text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
                     Carbs Target (g)
                   </label>
                   <input
                     type="number"
                     value={targetCarbs}
                     onChange={(e) => setTargetCarbs(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] font-mono font-bold text-sm"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] font-mono font-bold text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">
+                  <label className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 block mb-1">
                     Fats Target (g)
                   </label>
                   <input
                     type="number"
                     value={targetFats}
                     onChange={(e) => setTargetFats(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#22262E] text-white border border-[#2D333B] font-mono font-bold text-sm"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] font-mono font-bold text-sm"
                   />
                 </div>
               </div>
@@ -410,13 +409,13 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                 <button
                   type="button"
                   onClick={() => setShowTargetModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#22262E] text-slate-300 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#22262E] text-slate-600 dark:text-slate-300 font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#A3E635] text-black font-extrabold text-xs uppercase tracking-wider hover:bg-lime-400"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md"
                 >
                   Update Targets
                 </button>
