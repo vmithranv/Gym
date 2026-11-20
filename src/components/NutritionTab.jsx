@@ -10,11 +10,21 @@ import {
   Beef,
   Search,
   BookOpen,
-  Check,
-  ChevronDown,
-  Sparkles
+  CheckCircle2,
+  Calendar,
+  Clock,
+  Sparkles,
+  CheckSquare,
+  Square,
+  Moon,
+  Info
 } from 'lucide-react';
-import { DEFAULT_FOOD_LIBRARY } from '../utils/foodDatabase';
+import {
+  DAILY_HABITS_LIST,
+  PROTEIN_ROTATION_WEEK,
+  KERALA_TIMETABLE,
+  EXPANDED_FOOD_LIBRARY
+} from '../utils/keralaNutritionPlan';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 
 export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
@@ -27,6 +37,11 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [customFoodMultiplier, setCustomFoodMultiplier] = useState({});
+
+  // Daily Habits State backed by storage
+  const [completedHabits, setCompletedHabits] = useState(() =>
+    loadFromStorage('completed_daily_habits', {})
+  );
 
   // User Custom Food items loaded from storage
   const [customFoods, setCustomFoods] = useState(() =>
@@ -50,24 +65,27 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
   const [mealFats, setMealFats] = useState('');
 
   // Target Customization State
-  const [targetCalories, setTargetCalories] = useState(nutritionData?.targets?.calories || 2800);
-  const [targetProtein, setTargetProtein] = useState(nutritionData?.targets?.protein || 180);
-  const [targetCarbs, setTargetCarbs] = useState(nutritionData?.targets?.carbs || 320);
-  const [targetFats, setTargetFats] = useState(nutritionData?.targets?.fats || 70);
+  const [targetCalories, setTargetCalories] = useState(nutritionData?.targets?.calories || 2350);
+  const [targetProtein, setTargetProtein] = useState(nutritionData?.targets?.protein || 140);
+  const [targetCarbs, setTargetCarbs] = useState(nutritionData?.targets?.carbs || 270);
+  const [targetFats, setTargetFats] = useState(nutritionData?.targets?.fats || 60);
 
   const targets = nutritionData?.targets || {
-    calories: 2800,
-    protein: 180,
-    carbs: 320,
-    fats: 70
+    calories: 2350,
+    protein: 140,
+    carbs: 270,
+    fats: 60
   };
 
   const logs = nutritionData?.logs || [];
 
-  // Combine default library with user's saved custom foods
-  const allLibraryFoods = [...DEFAULT_FOOD_LIBRARY, ...customFoods];
+  // Detect today for protein rotation
+  const todayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
+  const todayRotation = PROTEIN_ROTATION_WEEK[todayIndex] || PROTEIN_ROTATION_WEEK[1];
 
-  // Categories list
+  // Combine default library with user's saved custom foods
+  const allLibraryFoods = [...EXPANDED_FOOD_LIBRARY, ...customFoods];
+
   const categories = [
     'All',
     'Grains & Carbs',
@@ -98,6 +116,23 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
     { calories: 0, protein: 0, carbs: 0, fats: 0 }
   );
 
+  const toggleHabit = (habitId) => {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const userTodayHabits = completedHabits[todayKey] || {};
+    const updated = {
+      ...completedHabits,
+      [todayKey]: {
+        ...userTodayHabits,
+        [habitId]: !userTodayHabits[habitId]
+      }
+    };
+    setCompletedHabits(updated);
+    saveToStorage('completed_daily_habits', updated);
+  };
+
+  const todayKey = new Date().toISOString().split('T')[0];
+  const currentDayHabits = completedHabits[todayKey] || {};
+
   // Fast 1-tap food logging from library
   const handleQuickLogFood = (food, multiplier = 1) => {
     const now = new Date();
@@ -114,6 +149,27 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
       protein: Math.round(food.protein * multNum * 10) / 10,
       carbs: Math.round(food.carbs * multNum * 10) / 10,
       fats: Math.round(food.fats * multNum * 10) / 10
+    };
+
+    onUpdateNutrition({
+      ...nutritionData,
+      logs: [newMeal, ...logs]
+    });
+  };
+
+  // 1-tap schedule timetable meal logger
+  const handleLogScheduledMeal = (item) => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newMeal = {
+      id: `meal-${Date.now()}`,
+      time: timeStr,
+      name: `${item.title}: ${item.items.split('+')[0].trim()}`,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fats: item.fats
     };
 
     onUpdateNutrition({
@@ -143,7 +199,6 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
     setCustomFoods(updated);
     saveToStorage('custom_food_library', updated);
 
-    // Also immediately log it
     handleQuickLogFood(newFoodItem, 1);
 
     setNewFoodName('');
@@ -211,15 +266,15 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
   };
 
   return (
-    <div className="space-y-4 pb-28 animate-in fade-in duration-200">
+    <div className="space-y-5 pb-32 animate-in fade-in duration-200">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <UtensilsCrossed className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Fuel & Nutrition
+            <UtensilsCrossed className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Kerala Fuel & Nutrition
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Calorie & macro tracker with built-in Indian & gym food library.
+            5:00 AM wake / 6:00 AM gym timetable, protein rotations & healthy habits.
           </p>
         </div>
 
@@ -324,6 +379,156 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
+          TODAY'S 7-DAY PROTEIN ROTATION WIDGET
+         ───────────────────────────────────────────────────────────── */}
+      <div className="rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-5 shadow-lg relative overflow-hidden">
+        <div className="flex items-center justify-between mb-2">
+          <span className="px-3 py-1 rounded-full bg-white/20 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 backdrop-blur-xs">
+            <Calendar className="w-3 h-3" /> Today's Recommended Protein Rotation
+          </span>
+          <span className="text-[10px] font-extrabold uppercase text-purple-200">
+            {todayRotation.title}
+          </span>
+        </div>
+
+        <div className="mt-2 space-y-2 text-xs">
+          <div className="bg-white/10 p-2.5 rounded-2xl backdrop-blur-xs">
+            <span className="font-black text-purple-200 block text-[10px] uppercase">Breakfast Focus</span>
+            <p className="font-semibold text-white mt-0.5">{todayRotation.breakfast}</p>
+          </div>
+          <div className="bg-white/10 p-2.5 rounded-2xl backdrop-blur-xs">
+            <span className="font-black text-purple-200 block text-[10px] uppercase">Lunch Focus</span>
+            <p className="font-semibold text-white mt-0.5">{todayRotation.lunch}</p>
+          </div>
+          <div className="bg-white/10 p-2.5 rounded-2xl backdrop-blur-xs">
+            <span className="font-black text-purple-200 block text-[10px] uppercase">Dinner Focus</span>
+            <p className="font-semibold text-white mt-0.5">{todayRotation.dinner}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 pt-2 border-t border-white/20 flex items-center justify-between text-[11px]">
+          <span className="text-purple-100 font-medium">Core Protein Sources:</span>
+          <strong className="text-white font-bold">{todayRotation.proteinFocus}</strong>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          5:00 AM WAKE / 6:00 AM GYM DAILY TIMETABLE (1-TAP LOGGING)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+              6:00 AM Gym Daily Timetable
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400">1-Tap Log</span>
+        </div>
+
+        <div className="space-y-2.5">
+          {KERALA_TIMETABLE.map((slot, sIdx) => (
+            <div
+              key={sIdx}
+              className="p-3 bg-slate-50 dark:bg-[#22262E]/70 rounded-2xl border border-slate-100 dark:border-transparent flex items-start justify-between gap-3"
+            >
+              <div className="flex items-start gap-2.5 min-w-0">
+                <span className="text-lg shrink-0 mt-0.5">{slot.icon}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] font-black text-blue-600 dark:text-[#A3E635] bg-blue-50 dark:bg-black/30 px-2 py-0.5 rounded-md">
+                      {slot.time}
+                    </span>
+                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      {slot.title}
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">
+                    {slot.items}
+                  </p>
+                  {slot.calories > 0 && (
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                      <span>{slot.calories} kcal</span>
+                      <span className="text-rose-500 font-bold">P: {slot.protein}g</span>
+                      <span className="text-amber-500 font-bold">C: {slot.carbs}g</span>
+                      <span className="text-sky-500 font-bold">F: {slot.fats}g</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {slot.calories > 0 && (
+                <button
+                  onClick={() => handleLogScheduledMeal(slot)}
+                  className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-[#A3E635] dark:hover:bg-lime-400 text-white dark:text-black font-extrabold text-[10px] uppercase tracking-wider shrink-0 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3 stroke-[3]" /> Log
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          DAILY HEALTHY HABITS CHECKLIST (6 ITEMS)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-[#A3E635]" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+              Daily Healthy Habits Checklist
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400">
+            {Object.values(currentDayHabits).filter(Boolean).length} of 6 Done
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {DAILY_HABITS_LIST.map((habit) => {
+            const isDone = Boolean(currentDayHabits[habit.id]);
+
+            return (
+              <button
+                key={habit.id}
+                onClick={() => toggleHabit(habit.id)}
+                className={`w-full p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                  isDone
+                    ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-500/30'
+                    : 'bg-slate-50 dark:bg-[#22262E]/70 border-slate-100 dark:border-transparent'
+                }`}
+              >
+                <span className="text-lg shrink-0 mt-0.5">{habit.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <h4
+                    className={`font-bold text-xs ${
+                      isDone
+                        ? 'text-emerald-700 dark:text-emerald-400 line-through'
+                        : 'text-slate-900 dark:text-white'
+                    }`}
+                  >
+                    {habit.title}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {habit.desc}
+                  </p>
+                </div>
+                <div className="shrink-0 mt-0.5">
+                  {isDone ? (
+                    <CheckSquare className="w-5 h-5 text-emerald-500 dark:text-[#A3E635]" />
+                  ) : (
+                    <Square className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
           BUILT-IN FOOD & MACRO LIBRARY (SEARCH & 1-TAP LOGGING)
          ───────────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-3.5">
@@ -337,7 +542,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
           <button
             onClick={() => setShowCustomFoodModal(true)}
-            className="px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
+            className="px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> Custom Food
           </button>
@@ -348,7 +553,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search Chicken, Kerala Matta Rice, Eggs, Paneer..."
+            placeholder="Search Chicken, Matta Rice, Eggs, Puttu, Kadala, Paneer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200/80 dark:border-[#2D333B] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635]"
@@ -429,12 +634,6 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
               </div>
             );
           })}
-
-          {filteredFoods.length === 0 && (
-            <div className="py-6 text-center text-xs text-slate-400">
-              No matching food found. Tap "+ Custom Food" to save your recipe!
-            </div>
-          )}
         </div>
       </div>
 
@@ -446,7 +645,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
         <Plus className="w-5 h-5 stroke-[3]" /> Quick Custom Food Log
       </button>
 
-      {/* Today's Meals Log */}
+      {/* Today's Logged Meals List */}
       <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-slate-900 dark:text-white text-sm">Today's Logged Meals ({logs.length})</h3>
@@ -481,7 +680,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
           {logs.length === 0 && (
             <div className="py-6 text-center text-xs text-slate-400">
-              No meals logged today yet. Tap any item in the library above to log instantly!
+              No meals logged today yet. Tap any item in the timetable or library above!
             </div>
           )}
         </div>
@@ -605,7 +804,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md cursor-pointer"
                 >
                   Save & Log Food
                 </button>
@@ -696,7 +895,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md cursor-pointer"
                 >
                   Save Meal
                 </button>
@@ -714,7 +913,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
               <Target className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Daily Macro Targets
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Configure daily nutritional goals for cutting, maintenance, or lean bulking.
+              Configure daily nutritional targets aligned with your Kerala muscle-gain goals.
             </p>
             <form onSubmit={handleSaveTargets} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -774,7 +973,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider hover:opacity-90 shadow-md cursor-pointer"
                 >
                   Update Targets
                 </button>

@@ -3,272 +3,173 @@
 export const EXERCISE_GUIDES = {
   'Barbell Flat Bench Press': {
     muscleGroup: 'Chest',
-    youtubeId: '4Y2ZdHCOXok', // High-reputation tutorial
+    youtubeId: '4Y2ZdHCOXok',
     tips: [
-      'Retract your scapulae (pinch shoulder blades together) and create a slight, stable arch in your lower back.',
-      'Lower the bar with control to your mid-sternum, tucking elbows at roughly a 45° to 75° angle.',
-      'Inhale and brace core on the descent; forcefully drive feet through the floor and exhale as you press up.'
+      'Pinch shoulder blades firmly back into the bench; maintain a slight, natural lower-back arch.',
+      'Control the bar to mid-chest with elbows tucked at roughly 45° to 70° (not flared 90°).',
+      'Inhale and brace abs before lowering; exhale and drive feet through floor to press up.'
     ]
   },
   'Incline Dumbbell Press': {
     muscleGroup: 'Chest',
     youtubeId: '8iPEnn-ltC8',
     tips: [
-      'Set bench angle to 30° - 45° to maximize upper pec clavicular head recruitment.',
-      'Keep wrists neutral stacked directly over elbows; avoid flaring elbows wide past 90 degrees.',
-      'Squeeze the upper pecs at the peak without clinking dumbbells together, lower with a deep controlled stretch.'
-    ]
-  },
-  'Weighted Chest Dips': {
-    muscleGroup: 'Chest',
-    youtubeId: 'yN6Q1UI_xkE',
-    tips: [
-      'Lean your torso forward 20°-30° and flare elbows slightly to place tension on chest rather than triceps.',
-      'Lower yourself until upper arms are parallel to the floor (around 90° elbow bend).',
-      'Lock out with controlled chest contraction; maintain depressed shoulders throughout.'
-    ]
-  },
-  'Cable Low-to-High Flyes': {
-    muscleGroup: 'Chest',
-    youtubeId: '3mKffjWb6Yg',
-    tips: [
-      'Set pulleys to bottom pin. Step one foot forward for a rock-solid, balanced stance.',
-      'Keep a slight bend in your elbows; drive hands up and inward across the upper chest line.',
-      'Pause and flex pecs for 1 second at full peak contraction.'
-    ]
-  },
-  'Pec Deck Machine Fly': {
-    muscleGroup: 'Chest',
-    youtubeId: 'O-Mm_GIHGdU',
-    tips: [
-      'Adjust seat height so handles align with mid-chest and elbows are slightly bent.',
-      'Keep chest puffed out and shoulders back against the pad throughout the full range of motion.',
-      'Focus on bringing your inner bicep elbows together rather than just touching hands.'
+      'Set bench angle to 30° - 45° to target clavicular (upper) chest fibers.',
+      'Keep wrists stacked directly over elbows; lower with a deep, controlled 2-3 second stretch.',
+      'Press up smoothly without clinking dumbbells together at top.'
     ]
   },
   'Standing Overhead Barbell Press': {
     muscleGroup: 'Shoulders',
     youtubeId: '2yjwXTZQDDI',
     tips: [
-      'Squeeze glutes and brace your abs hard to prevent excessive lower back arching.',
-      'Start with the bar resting on your clavicles; press straight up, moving head back then through the window.',
-      'Lock out overhead with bar centered directly over your midfoot.'
+      'Squeeze glutes and brace your core tight to protect your lower back from arching.',
+      'Start bar on clavicles; press straight overhead, pulling chin back then head through the window.',
+      'Lock out overhead with bar stacked directly over midfoot.'
     ]
   },
   'Dumbbell Lateral Raise': {
     muscleGroup: 'Shoulders',
     youtubeId: '3VcKaXpzqRo',
     tips: [
-      'Lean forward very slightly (5°-10°) and raise dumbbells out in the scapular plane (slightly in front).',
-      'Lead with your elbows and keep wrists relaxed below elbow height at the top.',
-      'Control the 2-second negative descent without using swinging body momentum.'
-    ]
-  },
-  'Cable Face Pulls': {
-    muscleGroup: 'Shoulders',
-    youtubeId: 'rep-qVOkqgk',
-    tips: [
-      'Set pulley to face level or slightly higher using a double-rope attachment.',
-      'Pull rope towards bridge of nose while externally rotating hands back past your ears.',
-      'Squeeze rear delts and mid-traps for a full beat before slowly releasing.'
-    ]
-  },
-  'Reverse Pec Deck / Rear Delt Fly': {
-    muscleGroup: 'Shoulders',
-    youtubeId: '4y3jB_l50mE',
-    tips: [
-      'Keep chest pressed flat against the chest pad, seat height aligned with shoulder level.',
-      'Drive arms out and back with slight elbow bend, initiating movement strictly from posterior delts.',
-      'Avoid shrugging shoulders up toward your neck.'
-    ]
-  },
-  'Conventional Barbell Deadlift': {
-    muscleGroup: 'Back',
-    youtubeId: 'op9kVnSso6Q',
-    tips: [
-      'Stance hip-width; bar directly over midfoot (about 1 inch from shins before hinging).',
-      'Engage lats by "protecting your armpits", pull slack out of the bar before pushing the floor away.',
-      'Stand tall by driving hips forward; do not hyperextend your lower back at lockout.'
-    ]
-  },
-  'Wide-Grip Lat Pulldown': {
-    muscleGroup: 'Back',
-    youtubeId: 'CAwf7n6Luuc',
-    tips: [
-      'Grip slightly wider than shoulder-width with thumbless or standard hook grip.',
-      'Slight torso lean back (10°-15°); pull bar toward upper chest leading with your elbows downward.',
-      'Control the ascent for full stretch of the lats without letting your shoulders yank upward.'
-    ]
-  },
-  'Bent-Over Barbell Row': {
-    muscleGroup: 'Back',
-    youtubeId: 'FWJR5Ve8gkQ',
-    tips: [
-      'Hinge at hips until torso is roughly 45° to the floor, spine rigid and neutral.',
-      'Pull barbell toward lower ribs/belly button, driving elbows back toward the ceiling.',
-      'Do not jerk your upper body upward to cheat the weight.'
-    ]
-  },
-  'Chest-Supported T-Bar Row': {
-    muscleGroup: 'Back',
-    youtubeId: 'juyV3aFqA2I',
-    tips: [
-      'Pad firmly on sternum to completely eliminate spinal loading and momentum.',
-      'Retract scapulae fully at top, squeezing rhomboids and mid-traps for 1 second.',
-      'Slow, controlled 2-3 second eccentric stretch at bottom.'
-    ]
-  },
-  'Close-Grip Seated Cable Row': {
-    muscleGroup: 'Back',
-    youtubeId: 'GZbfZ033f74',
-    tips: [
-      'Sit tall with knees slightly bent; do not rock torso back and forth during reps.',
-      'Pull handle into abdomen while depressing shoulder blades down and back.',
-      'Allow shoulders to stretch forward at bottom without rounding lower spine.'
-    ]
-  },
-  'Single-Arm Dumbbell Row': {
-    muscleGroup: 'Back',
-    youtubeId: 'roCP6wCXPqo',
-    tips: [
-      'Place one knee and hand on flat bench for sturdy three-point spinal support.',
-      'Pull dumbbell in an arc towards hip pocket to bias the latissimus dorsi.',
-      'Lower fully until you feel an expansive stretch across your mid-back.'
-    ]
-  },
-  'Pull-Ups / Weighted Pull-Ups': {
-    muscleGroup: 'Back',
-    youtubeId: 'eGo4IYlbE5g',
-    tips: [
-      'Start from a dead hang with scapulae engaged; avoid swinging or kipping legs.',
-      'Drive elbows down toward your back pockets until chin clears the bar comfortably.',
-      'Lower smoothly to full extension under complete muscular control.'
-    ]
-  },
-  'Barbell Back Squat': {
-    muscleGroup: 'Legs',
-    youtubeId: 'bEv6CCg2BC8',
-    tips: [
-      'Bar securely on upper traps (high bar) or rear delts (low bar); brace abdomen 360° with Valsalva.',
-      'Initiate by breaking at hips and knees simultaneously; keep knees tracking over toes.',
-      'Hit parallel (hip crease below knee top) and drive up through midfoot while chest remains tall.'
-    ]
-  },
-  'Incline 45° Leg Press': {
-    muscleGroup: 'Legs',
-    youtubeId: 'IZxyjW7MPJQ',
-    tips: [
-      'Keep lower back and glutes glued firmly to the seat pad; never let lower back round up.',
-      'Position feet shoulder-width on platform; lower weight to roughly 90° knee angle.',
-      'Drive through whole foot; do NOT hyperextend or snap knees into lockout at the top.'
-    ]
-  },
-  'Romanian Deadlift (RDL)': {
-    muscleGroup: 'Legs',
-    youtubeId: '7AbahA7PnGc',
-    tips: [
-      'Keep knees softly unlocked (15° flexed) and push hips straight back like closing a car door.',
-      'Keep barbell skimming shins/thighs to keep center of gravity close to center of mass.',
-      'Stop when hips can no longer travel backward (usually mid-shin); squeeze glutes to stand.'
-    ]
-  },
-  'Front Squats or Hack Squat': {
-    muscleGroup: 'Legs',
-    youtubeId: 'uYumuL_G_V0',
-    tips: [
-      'Keep elbows high and chest proud to maintain a perfectly upright vertical spine.',
-      'Deep knee flexion maximizes quad stretch and teardrop (VMO) activation.',
-      'Push out of the hole without hips shooting back first.'
-    ]
-  },
-  'Bulgarian Split Squat': {
-    muscleGroup: 'Legs',
-    youtubeId: '2C-uNgKwPLE',
-    tips: [
-      'Rear foot laces-down on bench; front foot placed far enough forward so knee stays over midfoot.',
-      'Drop rear knee straight down towards floor with slight forward torso lean for glute bias.',
-      'Drive primarily through front heel and midfoot to return to top.'
-    ]
-  },
-  'Leg Extension Machine': {
-    muscleGroup: 'Legs',
-    youtubeId: 'YyvSfVjQeL0',
-    tips: [
-      'Align machine pivot point directly with the center of your knee joint.',
-      'Extend legs smoothly, holding peak contraction for 1 second at top.',
-      'Lower weight slowly without letting the weight stack slam.'
-    ]
-  },
-  'Seated Hamstring Leg Curl': {
-    muscleGroup: 'Legs',
-    youtubeId: 'ELOCsoDSmrg',
-    tips: [
-      'Thigh pad locked snugly against quads so hips do not rise during contraction.',
-      'Curl heels under forcefully, pause and flex hamstrings at peak.',
-      'Slow 3-second eccentric extension to work hamstrings in their lengthened position.'
-    ]
-  },
-  'Lying Hamstring Leg Curl': {
-    muscleGroup: 'Legs',
-    youtubeId: '1Tq3QdYUuHs',
-    tips: [
-      'Keep hips pressed flat into the bench pad throughout; do not arch lower back to assist.',
-      'Point toes slightly up toward shins (dorsiflexion) to focus effort strictly into hamstrings.',
-      'Control the descent to protect knee tendons.'
-    ]
-  },
-  'Standing Machine Calf Raise': {
-    muscleGroup: 'Legs',
-    youtubeId: '3UWi44TXGYE',
-    tips: [
-      'Balls of feet on edge; knees slightly soft (not rigidly hyperextended).',
-      'Lower heels into a deep, full calf stretch and pause for 2 seconds to dissipate elastic recoil.',
-      'Explode up onto big toes and squeeze calves at top.'
-    ]
-  },
-  'Seated Calf Raise': {
-    muscleGroup: 'Legs',
-    youtubeId: 'JbyjNymZOt0',
-    tips: [
-      'Targets the soleus muscle beneath the gastrocnemius due to bent knee angle.',
-      'Full 2-second deep stretch at the bottom of every rep.',
-      'Smooth squeeze at peak; avoid rapid bouncing.'
-    ]
-  },
-  'Incline Dumbbell Bicep Curl': {
-    muscleGroup: 'Arms',
-    youtubeId: 'soxrZlIl35U',
-    tips: [
-      'Set bench to 45°-60°; let arms hang vertically to place long head of bicep on stretch.',
-      'Curl weights upward while supinating (turning thumbs outward) as you ascend.',
-      'Keep upper arms perpendicular to floor; do not swing elbows forward.'
-    ]
-  },
-  'Standing Dumbbell Hammer Curl': {
-    muscleGroup: 'Arms',
-    youtubeId: 'zC3nLlEvin4',
-    tips: [
-      'Palms face each other in a neutral grip throughout the entire movement.',
-      'Targets brachialis and brachioradialis for denser upper arms and thick forearms.',
-      'Keep elbows pinned at your ribs; curl smoothly without swinging your torso.'
+      'Slight forward torso lean (5°-10°); raise dumbbells outward in the scapular plane.',
+      'Lead with elbows; pause for a half-second at parallel without shrugging shoulders up.',
+      'Control the lowering phase; avoid using swinging hip momentum.'
     ]
   },
   'Cable Tricep Rope Pushdown': {
     muscleGroup: 'Arms',
     youtubeId: 'vB5OHsJ3EME',
     tips: [
-      'Pin elbows firmly to your sides; hinge solely from the elbow joint.',
-      'Push rope straight down and flare ends apart at the bottom to peak contract lateral head.',
-      'Return rope to 90° chest level with controlled eccentric resistance.'
+      'Pin elbows firmly at your sides; isolate movement solely to the elbow joint.',
+      'Push rope down and flare ends apart at the bottom to peak contract lateral head.',
+      'Return rope under control to chest height (90° elbow bend).'
     ]
   },
-  'Cable Overhead Tricep Extension': {
-    muscleGroup: 'Arms',
-    youtubeId: '1u18yJELsh0',
+  'Wide-Grip Lat Pulldown': {
+    muscleGroup: 'Back',
+    youtubeId: 'CAwf7n6Luuc',
     tips: [
-      'Places the long head of the tricep under maximum stretch by elevating upper arm overhead.',
-      'Keep elbows tucked in close to ears; avoid excessive elbow flare.',
-      'Extend forearms forward to full lockout, squeeze for 1 count, then lower deeply.'
+      'Grip just outside shoulder width with a thumbless or standard grip.',
+      'Slight torso lean back (10°-15°); drive elbows down toward your back pockets.',
+      'Control the bar on the way up to give your lats a full vertical stretch.'
+    ]
+  },
+  'Close-Grip Seated Cable Row': {
+    muscleGroup: 'Back',
+    youtubeId: 'GZbfZ033f74',
+    tips: [
+      'Sit tall with knees softly bent; avoid aggressive torso rocking.',
+      'Pull handle towards belly button while pinching shoulder blades together.',
+      'Let arms stretch forward at the bottom without rounding your lower spine.'
+    ]
+  },
+  'Chest-Supported T-Bar Row': {
+    muscleGroup: 'Back',
+    youtubeId: 'juyV3aFqA2I',
+    tips: [
+      'Chest firmly glued to the pad to eliminate momentum and protect lower back.',
+      'Retract scapulae fully, squeezing mid-back and rhomboids for 1 second.',
+      'Lower smoothly into a deep stretch.'
+    ]
+  },
+  'Cable Face Pulls': {
+    muscleGroup: 'Shoulders',
+    youtubeId: 'rep-qVOkqgk',
+    tips: [
+      'Set pulley to nose height with a rope attachment.',
+      'Pull hands towards temples while rotating knuckles back past your ears.',
+      'Hold the contraction for 1 beat to bulletproof shoulders and upper back.'
+    ]
+  },
+  'Incline Dumbbell Bicep Curl': {
+    muscleGroup: 'Arms',
+    youtubeId: 'soxrZlIl35U',
+    tips: [
+      'Set bench to 45°-60°; let arms hang straight down for maximum bicep stretch.',
+      'Curl dumbbells upward while turning palms up (supinating) as you rise.',
+      'Keep upper arms stationary; do not swing elbows forward.'
+    ]
+  },
+  'Standing Dumbbell Hammer Curl': {
+    muscleGroup: 'Arms',
+    youtubeId: 'zC3nLlEvin4',
+    tips: [
+      'Keep palms facing each other (neutral grip) through the entire repetition.',
+      'Builds the brachialis and forearm flexors for thicker, denser arms.',
+      'Avoid swinging hips or arching back.'
+    ]
+  },
+  'Incline 45° Leg Press': {
+    muscleGroup: 'Legs',
+    youtubeId: 'IZxyjW7MPJQ',
+    tips: [
+      'Keep glutes and lower back pressed firmly into the backrest; never let hips roll up.',
+      'Place feet shoulder-width on platform; lower under control to a 90° knee angle.',
+      'Push through full foot; NEVER lock or snap knees hyperextended at the top.'
+    ]
+  },
+  'Goblet Squats or Hack Squat': {
+    muscleGroup: 'Legs',
+    youtubeId: 'uYumuL_G_V0',
+    tips: [
+      'Hold dumbbell vertically against chest; keep torso upright and elbows tucked.',
+      'Squat between your legs until hip crease reaches knee parallel.',
+      'Drive up through midfoot while chest stays proud.'
+    ]
+  },
+  'Seated Hamstring Leg Curl': {
+    muscleGroup: 'Legs',
+    youtubeId: 'ELOCsoDSmrg',
+    tips: [
+      'Set thigh pad snug against quads so hips cannot lift during curl.',
+      'Curl heels under forcefully, pause and flex hamstrings at peak.',
+      'Allow a smooth 3-second eccentric release.'
+    ]
+  },
+  'Leg Extension Machine': {
+    muscleGroup: 'Legs',
+    youtubeId: 'YyvSfVjQeL0',
+    tips: [
+      'Align knee joint directly with the machine pivot axis.',
+      'Extend legs smoothly, holding quad peak contraction for 1 full second.',
+      'Lower with control without letting the weight stack bang.'
+    ]
+  },
+  'Standing Machine Calf Raise': {
+    muscleGroup: 'Legs',
+    youtubeId: '3UWi44TXGYE',
+    tips: [
+      'Balls of feet on block; knees softly unlocked.',
+      'Lower heels all the way down into a 2-second deep calf stretch.',
+      'Rise up high onto your big toes and squeeze hard.'
+    ]
+  },
+  'Weighted Chest Dips': {
+    muscleGroup: 'Chest',
+    youtubeId: 'yN6Q1UI_xkE',
+    tips: [
+      'Lean torso forward 20° to bias chest over triceps.',
+      'Lower until upper arms are parallel to floor (90° elbow bend).',
+      'Press up with control, keeping shoulders depressed.'
+    ]
+  },
+  'Pull-Ups / Weighted Pull-Ups': {
+    muscleGroup: 'Back',
+    youtubeId: 'eGo4IYlbE5g',
+    tips: [
+      'Engage shoulder blades from dead hang before pulling.',
+      'Drive elbows down towards hips until chin comfortably clears bar.',
+      'Lower under complete control.'
+    ]
+  },
+  'Romanian Deadlift (RDL)': {
+    muscleGroup: 'Legs',
+    youtubeId: '7AbahA7PnGc',
+    tips: [
+      'Soft bend in knees; push hips straight backward like shutting a door.',
+      'Keep weight skimming shins; stop when hips stop travelling back.',
+      'Squeeze glutes to stand tall without leaning back.'
     ]
   }
 };
@@ -310,6 +211,20 @@ export const MUSCLE_GROUP_CONFIG = {
     dotColor: '#10B981',
     gradient: 'from-emerald-500 to-teal-600'
   },
+  'Full Body': {
+    badgeBg: 'bg-indigo-500/15 dark:bg-indigo-500/25',
+    badgeText: 'text-indigo-600 dark:text-indigo-400',
+    badgeBorder: 'border-indigo-500/30',
+    dotColor: '#6366F1',
+    gradient: 'from-indigo-500 to-purple-600'
+  },
+  Rest: {
+    badgeBg: 'bg-teal-500/15 dark:bg-teal-500/25',
+    badgeText: 'text-teal-600 dark:text-teal-400',
+    badgeBorder: 'border-teal-500/30',
+    dotColor: '#14B8A6',
+    gradient: 'from-teal-500 to-emerald-600'
+  },
   Other: {
     badgeBg: 'bg-slate-500/15 dark:bg-slate-500/25',
     badgeText: 'text-slate-600 dark:text-slate-400',
@@ -332,7 +247,6 @@ export const extractYoutubeId = (urlOrId) => {
   return match ? match[1] : '';
 };
 
-// Helper to infer muscle group from exercise name if not explicitly set
 export const getExerciseMuscleGroup = (name) => {
   const guide = EXERCISE_GUIDES[name];
   if (guide?.muscleGroup) return guide.muscleGroup;
@@ -354,4 +268,16 @@ export const getExerciseMuscleGroup = (name) => {
     return 'Legs';
   }
   return 'Other';
+};
+
+// Returns recommended rest seconds based on exercise type (105-120s compound, 75s isolation, 120-150s leg compound)
+export const getExerciseRecommendedRest = (exerciseName) => {
+  const name = (exerciseName || '').toLowerCase();
+  if (name.includes('leg press') || name.includes('squat')) {
+    return 120; // 2 minutes for heavy leg compounds
+  }
+  if (name.includes('bench') || name.includes('overhead') || name.includes('press') || name.includes('row') || name.includes('lat pulldown')) {
+    return 105; // ~105s (90-120s range) for upper compounds
+  }
+  return 75; // 75s (60-90s range) for isolation (lateral raises, triceps pushdown, curls, calf raises)
 };

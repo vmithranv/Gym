@@ -1,164 +1,167 @@
-// IronPulse initial seed data & storage utilities
+// IronPulse Personalized Weekly Split & Exercise Configurations
+// Monday: Push (Chest, Shoulders, Triceps)
+// Tuesday: Rest & Recovery (Stretching, light walk)
+// Wednesday: Pull (Back, Biceps)
+// Thursday: Rest & Recovery (Active rest, hydration)
+// Friday: Legs (Quads, Hamstrings, Glutes, Calves)
+// Saturday: Light Full-Body / Active Activity
+// Sunday: Full Rest Day
 
 export const DEFAULT_ROUTINES = [
   {
-    id: 'push-a',
-    name: 'Push Day A (Chest & Triceps Focus)',
+    id: 'monday-push',
+    name: 'Monday: Push Day (Chest, Shoulders & Triceps)',
     dayOfWeek: 1, // Mon
     category: 'Push',
+    description: '2 heavy/moderate sets per exercise for maximum mechanical tension and recovery.',
     exercises: [
-      { id: 'ex-bench', name: 'Barbell Flat Bench Press', targetSets: 4, defaultReps: 8, targetRpe: 8 },
-      { id: 'ex-incline-db', name: 'Incline Dumbbell Press', targetSets: 3, defaultReps: 10, targetRpe: 8 },
-      { id: 'ex-ohp', name: 'Standing Overhead Barbell Press', targetSets: 3, defaultReps: 8, targetRpe: 8 },
-      { id: 'ex-dips', name: 'Weighted Chest Dips', targetSets: 3, defaultReps: 10, targetRpe: 9 },
-      { id: 'ex-cable-fly', name: 'Cable Low-to-High Flyes', targetSets: 3, defaultReps: 12, targetRpe: 9 },
-      { id: 'ex-tricep-pushdown', name: 'Cable Tricep Rope Pushdown', targetSets: 4, defaultReps: 12, targetRpe: 9 }
+      { id: 'ex-chest-press', name: 'Barbell Flat Bench Press', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-incline-db', name: 'Incline Dumbbell Press', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
+      { id: 'ex-shoulder-press', name: 'Standing Overhead Barbell Press', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-lateral-raise', name: 'Dumbbell Lateral Raise', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false },
+      { id: 'ex-tricep-pushdown', name: 'Cable Tricep Rope Pushdown', muscleGroup: 'Arms', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false }
     ]
   },
   {
-    id: 'pull-a',
-    name: 'Pull Day A (Back & Biceps Focus)',
+    id: 'tuesday-rest',
+    name: 'Tuesday: Rest & Recovery',
     dayOfWeek: 2, // Tue
-    category: 'Pull',
-    exercises: [
-      { id: 'ex-deadlift', name: 'Conventional Barbell Deadlift', targetSets: 4, defaultReps: 6, targetRpe: 8.5 },
-      { id: 'ex-lat-pulldown', name: 'Wide-Grip Lat Pulldown', targetSets: 4, defaultReps: 10, targetRpe: 8 },
-      { id: 'ex-barbell-row', name: 'Bent-Over Barbell Row', targetSets: 3, defaultReps: 8, targetRpe: 8 },
-      { id: 'ex-chest-supported-row', name: 'Chest-Supported T-Bar Row', targetSets: 3, defaultReps: 10, targetRpe: 8 },
-      { id: 'ex-face-pulls', name: 'Cable Face Pulls', targetSets: 3, defaultReps: 15, targetRpe: 8 },
-      { id: 'ex-incline-curl', name: 'Incline Dumbbell Bicep Curl', targetSets: 4, defaultReps: 10, targetRpe: 9 }
-    ]
+    category: 'Rest',
+    isRest: true,
+    description: 'Light walking, 10-minute hip and shoulder mobility, and high protein hydration.',
+    exercises: []
   },
   {
-    id: 'legs-a',
-    name: 'Legs Day A (Quad & Calves Focus)',
+    id: 'wednesday-pull',
+    name: 'Wednesday: Pull Day (Back & Biceps)',
     dayOfWeek: 3, // Wed
-    category: 'Legs',
-    exercises: [
-      { id: 'ex-squat', name: 'Barbell Back Squat', targetSets: 4, defaultReps: 8, targetRpe: 8.5 },
-      { id: 'ex-leg-press', name: 'Incline 45° Leg Press', targetSets: 3, defaultReps: 10, targetRpe: 8 },
-      { id: 'ex-romanian-deadlift', name: 'Romanian Deadlift (RDL)', targetSets: 3, defaultReps: 8, targetRpe: 8 },
-      { id: 'ex-leg-extension', name: 'Leg Extension Machine', targetSets: 3, defaultReps: 12, targetRpe: 9 },
-      { id: 'ex-seated-leg-curl', name: 'Seated Hamstring Leg Curl', targetSets: 3, defaultReps: 12, targetRpe: 9 },
-      { id: 'ex-standing-calf-raise', name: 'Standing Machine Calf Raise', targetSets: 4, defaultReps: 15, targetRpe: 9 }
-    ]
-  },
-  {
-    id: 'push-b',
-    name: 'Push Day B (Shoulder & Upper Chest)',
-    dayOfWeek: 4, // Thu
-    category: 'Push',
-    exercises: [
-      { id: 'ex-ohp', name: 'Standing Overhead Barbell Press', targetSets: 4, defaultReps: 6, targetRpe: 8.5 },
-      { id: 'ex-incline-db', name: 'Incline Dumbbell Press', targetSets: 4, defaultReps: 8, targetRpe: 8 },
-      { id: 'ex-pec-deck', name: 'Pec Deck Machine Fly', targetSets: 3, defaultReps: 12, targetRpe: 8.5 },
-      { id: 'ex-lateral-raise', name: 'Dumbbell Lateral Raise', targetSets: 4, defaultReps: 15, targetRpe: 9 },
-      { id: 'ex-overhead-tricep-ext', name: 'Cable Overhead Tricep Extension', targetSets: 3, defaultReps: 12, targetRpe: 9 }
-    ]
-  },
-  {
-    id: 'pull-b',
-    name: 'Pull Day B (Upper Back & Forearms)',
-    dayOfWeek: 5, // Fri
     category: 'Pull',
+    description: 'Target lats, upper back thickness, and bicep peaks with strict 2-set progressive overload.',
     exercises: [
-      { id: 'ex-weighted-pullups', name: 'Pull-Ups / Weighted Pull-Ups', targetSets: 4, defaultReps: 8, targetRpe: 8.5 },
-      { id: 'ex-seated-cable-row', name: 'Close-Grip Seated Cable Row', targetSets: 4, defaultReps: 10, targetRpe: 8 },
-      { id: 'ex-single-arm-db-row', name: 'Single-Arm Dumbbell Row', targetSets: 3, defaultReps: 10, targetRpe: 8 },
-      { id: 'ex-reverse-pec-deck', name: 'Reverse Pec Deck / Rear Delt Fly', targetSets: 4, defaultReps: 15, targetRpe: 8.5 },
-      { id: 'ex-hammer-curl', name: 'Standing Dumbbell Hammer Curl', targetSets: 4, defaultReps: 10, targetRpe: 9 }
+      { id: 'ex-lat-pulldown', name: 'Wide-Grip Lat Pulldown', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-seated-cable-row', name: 'Close-Grip Seated Cable Row', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-chest-supported-row', name: 'Chest-Supported T-Bar Row', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
+      { id: 'ex-face-pulls', name: 'Cable Face Pulls', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 14, restSeconds: 75, isCompound: false },
+      { id: 'ex-biceps-curl', name: 'Incline Dumbbell Bicep Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
+      { id: 'ex-hammer-curl', name: 'Standing Dumbbell Hammer Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false }
     ]
   },
   {
-    id: 'legs-b',
-    name: 'Legs Day B (Hamstring & Glute Focus)',
-    dayOfWeek: 6, // Sat
+    id: 'thursday-rest',
+    name: 'Thursday: Rest & Active Hydration',
+    dayOfWeek: 4, // Thu
+    category: 'Rest',
+    isRest: true,
+    description: 'Active rest day. Drink 3-4L water and prioritize 8-9 hours sleep tonight.',
+    exercises: []
+  },
+  {
+    id: 'friday-legs',
+    name: 'Friday: Legs Day (Quads, Hamstrings, Glutes & Calves)',
+    dayOfWeek: 5, // Fri
     category: 'Legs',
+    description: 'Build powerful quads, hamstrings, and calves. Extended rest intervals for leg compounds.',
     exercises: [
-      { id: 'ex-romanian-deadlift', name: 'Romanian Deadlift (RDL)', targetSets: 4, defaultReps: 8, targetRpe: 8.5 },
-      { id: 'ex-front-squat', name: 'Front Squats or Hack Squat', targetSets: 3, defaultReps: 8, targetRpe: 8 },
-      { id: 'ex-bulgarian-split-squat', name: 'Bulgarian Split Squat', targetSets: 3, defaultReps: 10, targetRpe: 9 },
-      { id: 'ex-lying-leg-curl', name: 'Lying Hamstring Leg Curl', targetSets: 4, defaultReps: 12, targetRpe: 9 },
-      { id: 'ex-seated-calf-raise', name: 'Seated Calf Raise', targetSets: 4, defaultReps: 15, targetRpe: 8.5 }
+      { id: 'ex-leg-press', name: 'Incline 45° Leg Press', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 120, isCompound: true },
+      { id: 'ex-goblet-squat', name: 'Goblet Squats or Hack Squat', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-seated-leg-curl', name: 'Seated Hamstring Leg Curl', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
+      { id: 'ex-leg-extension', name: 'Leg Extension Machine', muscleGroup: 'Legs', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false },
+      { id: 'ex-calf-raise', name: 'Standing Machine Calf Raise', muscleGroup: 'Legs', targetSets: 2, defaultReps: 15, restSeconds: 75, isCompound: false }
     ]
   },
   {
-    id: 'rest-sunday',
-    name: 'Rest & Recovery Day',
+    id: 'saturday-active',
+    name: 'Saturday: Light Full-Body / Active Movement',
+    dayOfWeek: 6, // Sat
+    category: 'Full Body',
+    description: 'Optional light mobility, brisk walking, bodyweight push-ups, or core stability.',
+    exercises: [
+      { id: 'ex-dips', name: 'Weighted Chest Dips', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
+      { id: 'ex-pullup', name: 'Pull-Ups / Weighted Pull-Ups', muscleGroup: 'Back', targetSets: 2, defaultReps: 8, restSeconds: 90, isCompound: true },
+      { id: 'ex-rdl', name: 'Romanian Deadlift (RDL)', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true }
+    ]
+  },
+  {
+    id: 'sunday-rest',
+    name: 'Sunday: Full Rest & Recovery',
     dayOfWeek: 0, // Sun
     category: 'Rest',
     isRest: true,
+    description: 'Full recovery day. High protein meals, relaxing with family, and charging up for Monday Push.',
     exercises: []
   }
 ];
 
 export const INITIAL_PREVIOUS_RECORDS = {
-  'Barbell Flat Bench Press': { weight: 90, reps: 8, date: '2026-11-17', calculated1RM: 111.6 },
-  'Incline Dumbbell Press': { weight: 32, reps: 10, date: '2026-11-17', calculated1RM: 42.7 },
-  'Standing Overhead Barbell Press': { weight: 57.5, reps: 8, date: '2026-11-15', calculated1RM: 71.3 },
-  'Conventional Barbell Deadlift': { weight: 160, reps: 5, date: '2026-11-16', calculated1RM: 186.7 },
-  'Wide-Grip Lat Pulldown': { weight: 75, reps: 10, date: '2026-11-16', calculated1RM: 100 },
-  'Bent-Over Barbell Row': { weight: 80, reps: 8, date: '2026-11-16', calculated1RM: 99.2 },
-  'Barbell Back Squat': { weight: 135, reps: 6, date: '2026-11-14', calculated1RM: 162 },
-  'Romanian Deadlift (RDL)': { weight: 110, reps: 8, date: '2026-11-14', calculated1RM: 136.4 }
+  'Barbell Flat Bench Press': { weight: 55, reps: 10, date: '2026-11-17', calculated1RM: 73.3 },
+  'Incline Dumbbell Press': { weight: 18, reps: 10, date: '2026-11-17', calculated1RM: 24.0 },
+  'Standing Overhead Barbell Press': { weight: 35, reps: 10, date: '2026-11-17', calculated1RM: 46.7 },
+  'Dumbbell Lateral Raise': { weight: 8, reps: 14, date: '2026-11-17', calculated1RM: 12.5 },
+  'Cable Tricep Rope Pushdown': { weight: 22.5, reps: 12, date: '2026-11-17', calculated1RM: 32.4 },
+  'Wide-Grip Lat Pulldown': { weight: 50, reps: 10, date: '2026-11-15', calculated1RM: 66.7 },
+  'Close-Grip Seated Cable Row': { weight: 45, reps: 10, date: '2026-11-15', calculated1RM: 60.0 },
+  'Chest-Supported T-Bar Row': { weight: 30, reps: 10, date: '2026-11-15', calculated1RM: 40.0 },
+  'Cable Face Pulls': { weight: 17.5, reps: 15, date: '2026-11-15', calculated1RM: 28.6 },
+  'Incline Dumbbell Bicep Curl': { weight: 12, reps: 10, date: '2026-11-15', calculated1RM: 16.0 },
+  'Standing Dumbbell Hammer Curl': { weight: 12, reps: 10, date: '2026-11-15', calculated1RM: 16.0 },
+  'Incline 45° Leg Press': { weight: 110, reps: 10, date: '2026-11-14', calculated1RM: 146.7 },
+  'Goblet Squats or Hack Squat': { weight: 24, reps: 10, date: '2026-11-14', calculated1RM: 32.0 },
+  'Seated Hamstring Leg Curl': { weight: 35, reps: 10, date: '2026-11-14', calculated1RM: 46.7 },
+  'Leg Extension Machine': { weight: 40, reps: 12, date: '2026-11-14', calculated1RM: 57.6 },
+  'Standing Machine Calf Raise': { weight: 50, reps: 15, date: '2026-11-14', calculated1RM: 81.8 }
 };
 
 export const INITIAL_BODY_WEIGHT_HISTORY = [
-  { date: '11/01', weight: 80.2 },
-  { date: '11/04', weight: 80.0 },
-  { date: '11/07', weight: 79.8 },
-  { date: '11/10', weight: 79.5 },
-  { date: '11/13', weight: 79.7 },
-  { date: '11/16', weight: 79.4 },
-  { date: '11/19', weight: 79.2 }
+  { date: '11/01', weight: 68.5 },
+  { date: '11/05', weight: 68.7 },
+  { date: '11/09', weight: 68.6 },
+  { date: '11/13', weight: 68.9 },
+  { date: '11/17', weight: 69.1 },
+  { date: '11/20', weight: 69.3 }
 ];
 
 export const INITIAL_STRENGTH_PROGRESSION = {
   'Barbell Flat Bench Press': [
-    { date: '10/20', oneRepMax: 95 },
-    { date: '10/27', oneRepMax: 100 },
-    { date: '11/03', oneRepMax: 102.5 },
-    { date: '11/10', oneRepMax: 107 },
-    { date: '11/17', oneRepMax: 111.6 }
+    { date: '10/25', oneRepMax: 60 },
+    { date: '11/01', oneRepMax: 64 },
+    { date: '11/08', oneRepMax: 67.5 },
+    { date: '11/15', oneRepMax: 70 },
+    { date: '11/17', oneRepMax: 73.3 }
   ],
-  'Barbell Back Squat': [
-    { date: '10/20', oneRepMax: 140 },
-    { date: '10/27', oneRepMax: 145 },
-    { date: '11/03', oneRepMax: 152 },
-    { date: '11/10', oneRepMax: 158 },
-    { date: '11/14', oneRepMax: 162 }
+  'Wide-Grip Lat Pulldown': [
+    { date: '10/25', oneRepMax: 54 },
+    { date: '11/01', oneRepMax: 58 },
+    { date: '11/08', oneRepMax: 62 },
+    { date: '11/15', oneRepMax: 66.7 }
   ],
-  'Conventional Barbell Deadlift': [
-    { date: '10/20', oneRepMax: 165 },
-    { date: '10/27', oneRepMax: 170 },
-    { date: '11/03', oneRepMax: 175 },
-    { date: '11/10', oneRepMax: 180 },
-    { date: '11/16', oneRepMax: 186.7 }
+  'Incline 45° Leg Press': [
+    { date: '10/25', oneRepMax: 120 },
+    { date: '11/01', oneRepMax: 128 },
+    { date: '11/08', oneRepMax: 138 },
+    { date: '11/14', oneRepMax: 146.7 }
   ],
   'Standing Overhead Barbell Press': [
-    { date: '10/20', oneRepMax: 60 },
-    { date: '10/27', oneRepMax: 62.5 },
-    { date: '11/03', oneRepMax: 65 },
-    { date: '11/10', oneRepMax: 68 },
-    { date: '11/15', oneRepMax: 71.3 }
+    { date: '10/25', oneRepMax: 38 },
+    { date: '11/01', oneRepMax: 40 },
+    { date: '11/08', oneRepMax: 43 },
+    { date: '11/17', oneRepMax: 46.7 }
   ]
 };
 
 export const INITIAL_NUTRITION_DATA = {
   targets: {
-    calories: 2800,
-    protein: 180,
-    carbs: 320,
-    fats: 70
+    calories: 2350,
+    protein: 140,
+    carbs: 270,
+    fats: 60
   },
   logs: [
-    { id: '1', time: '08:00 AM', name: 'Oatmeal with Whey & Berries', calories: 620, protein: 45, carbs: 75, fats: 12 },
-    { id: '2', time: '12:30 PM', name: 'Chicken Breast, Jasmine Rice & Veggies', calories: 750, protein: 55, carbs: 90, fats: 14 },
-    { id: '3', time: '04:00 PM', name: 'Pre-Workout Banana & Protein Shake', calories: 340, protein: 30, carbs: 45, fats: 4 }
+    { id: '1', time: '05:15 AM', name: 'Pre-Workout Banana + Almonds & Cashews', calories: 155, protein: 3.5, carbs: 28, fats: 4.5 },
+    { id: '2', time: '07:30 AM', name: 'Rice Puttu + Kadala Curry + 2 Boiled Eggs', calories: 520, protein: 28, carbs: 68, fats: 14 },
+    { id: '3', time: '11:00 AM', name: 'Thick Curd + Sliced Cucumber & Carrot', calories: 127, protein: 7, carbs: 13.5, fats: 4.7 }
   ]
 };
 
-// LocalStorage helpers with safe JSON parsing
 export const loadFromStorage = (key, fallback) => {
   try {
     const item = localStorage.getItem(`ironpulse_${key}`);

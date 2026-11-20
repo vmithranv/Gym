@@ -7,7 +7,11 @@ import {
   Scale,
   Plus,
   Layers,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2,
+  Sparkles,
+  Milestone,
+  ArrowRight
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -18,6 +22,7 @@ import {
   Tooltip,
   CartesianGrid
 } from 'recharts';
+import { MUSCLE_BUILDING_ROADMAP } from '../utils/keralaNutritionPlan';
 
 export default function ProgressTab({
   workoutHistory = [],
@@ -42,21 +47,21 @@ export default function ProgressTab({
       return eSum + exVol;
     }, 0);
     return sum + workoutVol;
-  }, 14850);
+  }, 12450);
 
-  const totalWorkouts = Math.max(workoutHistory.length + 18, 19);
-  const currentStreak = 4;
+  const totalWorkouts = Math.max(workoutHistory.length + 14, 15);
+  const currentStreak = 4; // Consistency
 
   const availableExercises = Array.from(
     new Set([...Object.keys(progressionData), ...Object.keys(records)])
   );
 
   const activeChartData = progressionData[selectedExercise] || [
-    { date: '11/01', oneRepMax: (records[selectedExercise]?.weight || 60) * 1.1 },
-    { date: '11/10', oneRepMax: (records[selectedExercise]?.weight || 60) * 1.15 },
+    { date: '11/01', oneRepMax: (records[selectedExercise]?.weight || 50) * 1.1 },
+    { date: '11/10', oneRepMax: (records[selectedExercise]?.weight || 50) * 1.15 },
     {
       date: '11/17',
-      oneRepMax: records[selectedExercise]?.calculated1RM || (records[selectedExercise]?.weight || 60) * 1.2
+      oneRepMax: records[selectedExercise]?.calculated1RM || (records[selectedExercise]?.weight || 50) * 1.2
     }
   ];
 
@@ -73,22 +78,22 @@ export default function ProgressTab({
     setShowWeightModal(false);
   };
 
-  const latestBodyWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 79.2;
+  const latestBodyWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 69.3;
 
   const gridColor = isDark ? '#2D333B' : '#E2E8F0';
   const axisColor = isDark ? '#64748B' : '#94A3B8';
-  const primaryStroke = isDark ? '#A3E635' : '#2563EB'; // Lime in dark, Royal Blue in light
+  const primaryStroke = isDark ? '#A3E635' : '#2563EB';
   const secondaryStroke = isDark ? '#38BDF8' : '#0EA5E9';
 
   return (
-    <div className="space-y-4 pb-24 animate-in fade-in duration-200">
+    <div className="space-y-5 pb-28 animate-in fade-in duration-200">
       {/* Top Header */}
       <div>
         <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Strength & Progress
+          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Strength & Milestones
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Estimated 1-Rep Max (1RM) trends & body weight tracking.
+          Track progressive overload, body composition, and your realistic muscle-growth journey.
         </p>
       </div>
 
@@ -101,7 +106,7 @@ export default function ProgressTab({
           </div>
           <div>
             <div className="text-xl font-black text-white leading-tight font-mono">{totalWorkouts}</div>
-            <div className="text-[10px] text-blue-100 font-medium">Logged</div>
+            <div className="text-[10px] text-blue-100 font-medium">Completed</div>
           </div>
         </div>
 
@@ -114,7 +119,7 @@ export default function ProgressTab({
             <div className="text-xl font-black text-white leading-tight font-mono">
               {currentStreak} Days
             </div>
-            <div className="text-[10px] text-amber-100 font-medium">Active fire</div>
+            <div className="text-[10px] text-amber-100 font-medium">6:00 AM Active</div>
           </div>
         </div>
 
@@ -127,8 +132,59 @@ export default function ProgressTab({
             <div className="text-xl font-black text-white leading-tight font-mono">
               {(totalVolumeKg / 1000).toFixed(1)}t
             </div>
-            <div className="text-[10px] text-emerald-100 font-medium">Tonnes lifted</div>
+            <div className="text-[10px] text-emerald-100 font-medium">Tonnes Lifted</div>
           </div>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          REALISTIC MUSCLE-BUILDING MILESTONE ROADMAP (NO CRASH DIETING)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Milestone className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" />
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+              Natural Muscle Growth Roadmap
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400">Sustainable Gym Journey</span>
+        </div>
+
+        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          Building dense, athletic muscle is about consistent lifting at 6:00 AM, progressive overload with 90s–120s rest, and fueling with Kerala protein sources — zero crash diets or weight anxiety.
+        </p>
+
+        <div className="space-y-3 pt-1">
+          {MUSCLE_BUILDING_ROADMAP.map((phase, idx) => (
+            <div
+              key={idx}
+              className="p-3.5 bg-slate-50 dark:bg-[#22262E]/70 rounded-2xl border border-slate-100 dark:border-transparent space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-[#A3E635]" />
+                  {phase.phase}: {phase.title}
+                </span>
+                <span
+                  className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${phase.badgeColor}`}
+                >
+                  {phase.badge}
+                </span>
+              </div>
+
+              <ul className="space-y-1.5 pl-3">
+                {phase.milestones.map((ms, mIdx) => (
+                  <li
+                    key={mIdx}
+                    className="text-[11px] text-slate-600 dark:text-slate-300 list-disc leading-relaxed font-medium"
+                  >
+                    {ms}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -207,12 +263,12 @@ export default function ProgressTab({
                 Current: {latestBodyWeight} kg
               </span>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">Weight Trend Tracker</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">Consistent Weight Tracking</h3>
           </div>
 
           <button
             onClick={() => setShowWeightModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1 active:scale-95 transition-all"
+            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-blue-600 dark:text-[#A3E635]" /> Log Weight
           </button>
@@ -260,7 +316,7 @@ export default function ProgressTab({
               <Scale className="w-4 h-4 text-blue-600 dark:text-[#A3E635]" /> Log Morning Weight
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Weigh yourself under consistent conditions (fasted upon waking).
+              Weigh yourself after waking up (fasted) for the truest weekly average.
             </p>
             <form onSubmit={handleAddWeight} className="space-y-4">
               <div className="relative">
@@ -268,7 +324,7 @@ export default function ProgressTab({
                   type="number"
                   step="0.1"
                   autoFocus
-                  placeholder="e.g. 79.5"
+                  placeholder="e.g. 69.5"
                   value={newWeightInput}
                   onChange={(e) => setNewWeightInput(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] focus:ring-2 focus:ring-blue-500 dark:focus:ring-[#A3E635] font-mono font-bold text-lg text-center outline-none"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Plus,
@@ -11,16 +11,39 @@ import {
   Sparkles,
   Calendar,
   Layers,
-  ChevronRight,
-  RotateCcw
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  HeartPulse,
+  Activity
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import ExerciseCard from './ExerciseCard';
 import RestTimer from './RestTimer';
 import ExerciseAnimation from './ExerciseAnimation';
-import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
+import {
+  MUSCLE_GROUP_CONFIG,
+  getExerciseMuscleGroup,
+  getExerciseRecommendedRest
+} from '../utils/exerciseData';
 
 const DAYS_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// 5-8 min Dynamic Warm-up Checklist
+const WARMUP_ROUTINE = [
+  { id: 'w-1', title: 'Arm Circles & Shoulder Dislocations', reps: '15 reps forward & backward' },
+  { id: 'w-2', title: 'Torso Twists & Cat-Cow Stretches', reps: '10 reps each side' },
+  { id: 'w-3', title: 'Bodyweight Squats & Hip Openers', reps: '15 deep reps' },
+  { id: 'w-4', title: 'Light Warm-Up Set (50% working weight)', reps: '1 set of 10 easy reps' }
+];
+
+// 3-5 min Stretching Cool-down Checklist
+const COOLDOWN_ROUTINE = [
+  { id: 'c-1', title: 'Doorway Chest & Bicep Stretch', duration: '30 seconds each side' },
+  { id: 'c-2', title: 'Lat & Upper Back Hanging Stretch', duration: '30 seconds deep stretch' },
+  { id: 'c-3', title: 'Standing Quad & Hip Flexor Stretch', duration: '30 seconds per leg' },
+  { id: 'c-4', title: 'Seated Hamstring & Lower Back Release', duration: '45 seconds calm breathing' }
+];
 
 export default function WorkoutTab({
   activeSession,
@@ -32,8 +55,15 @@ export default function WorkoutTab({
   onOpenFormGuide
 }) {
   // Timer States
-  const [restTimerConfig, setRestTimerConfig] = useState(null); // { mode: 'set'|'transition', seconds: number, nextExerciseName?: string }
+  const [restTimerConfig, setRestTimerConfig] = useState(null);
   const [newPrNotice, setNewPrNotice] = useState(null);
+  const [shortRestWarning, setShortRestWarning] = useState(null);
+
+  // Warmup & Cooldown Collapsible States
+  const [showWarmup, setShowWarmup] = useState(false);
+  const [warmupChecked, setWarmupChecked] = useState({});
+  const [showCooldown, setShowCooldown] = useState(false);
+  const [cooldownChecked, setCooldownChecked] = useState({});
 
   // Custom Exercise modal
   const [customExerciseName, setCustomExerciseName] = useState('');
@@ -44,19 +74,14 @@ export default function WorkoutTab({
   // Session elapsed timer (MM:SS)
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  useEffect(() => {
-    let interval = null;
-    if (activeSession) {
-      interval = setInterval(() => {
-        const start = new Date(activeSession.startedAt).getTime();
-        const now = Date.now();
-        setElapsedSeconds(Math.max(0, Math.floor((now - start) / 1000)));
-      }, 1000);
-    } else {
-      setElapsedSeconds(0);
-    }
-    return () => clearInterval(interval);
-  }, [activeSession]);
+  // Track timestamp of last completed set to detect < 30s rest
+  const [lastSetTimestamp, setLastSetTimestamp] = useState(null);
+
+  // Detect current day's routine
+  const todayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
+  const todayDayName = DAYS_NAMES[todayIndex];
+  const todayRoutine = routines.find((r) => r.dayOfWeek === todayIndex) || routines[0];
+  const isRestDay = todayRoutine?.category === 'Rest' || todayRoutine?.isRest;
 
   const formatElapsed = (sec) => {
     const mins = Math.floor(sec / 60);
@@ -87,22 +112,17 @@ export default function WorkoutTab({
     }, 4500);
   };
 
-  // Detect current day's routine
-  const todayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
-  const todayDayName = DAYS_NAMES[todayIndex];
-  const todayRoutine = routines.find((r) => r.dayOfWeek === todayIndex) || routines[0];
-  const isSundayRest = todayIndex === 0 || todayRoutine?.category === 'Rest';
-
   const startTodayRoutine = () => {
     const initialExercises = (todayRoutine.exercises || []).map((ex, idx) => ({
       id: `${ex.id}-${Date.now()}-${idx}`,
       name: ex.name,
       muscleGroup: ex.muscleGroup || getExerciseMuscleGroup(ex.name),
       customVideoUrl: ex.customVideoUrl || '',
-      sets: Array.from({ length: ex.targetSets || 3 }).map((_, sIdx) => ({
+      restSeconds: ex.restSeconds || getExerciseRecommendedRest(ex.name),
+      sets: Array.from({ length: ex.targetSets || 2 }).map((_, sIdx) => ({
         setNumber: sIdx + 1,
-        weight: records[ex.name]?.weight || 60,
-        reps: ex.defaultReps || 8,
+        weight: records[ex.name]?.weight || 50,
+        reps: ex.defaultReps || 10,
         completed: false,
         isPr: false
       }))
@@ -127,10 +147,10 @@ export default function WorkoutTab({
           id: `ex-${Date.now()}`,
           name: 'Barbell Flat Bench Press',
           muscleGroup: 'Chest',
+          restSeconds: 105,
           sets: [
-            { setNumber: 1, weight: 60, reps: 8, completed: false, isPr: false },
-            { setNumber: 2, weight: 60, reps: 8, completed: false, isPr: false },
-            { setNumber: 3, weight: 60, reps: 8, completed: false, isPr: false }
+            { setNumber: 1, weight: 50, reps: 10, completed: false, isPr: false },
+            { setNumber: 2, weight: 50, reps: 10, completed: false, isPr: false }
           ]
         }
       ]
@@ -138,10 +158,23 @@ export default function WorkoutTab({
   };
 
   const handleSetCompleted = (exerciseName, weight, reps, isNewPr) => {
-    // Trigger standard Set Rest Timer (default 90s)
+    const now = Date.now();
+
+    // Check if user logged set too fast (< 30 seconds rest)
+    if (lastSetTimestamp && now - lastSetTimestamp < 30000) {
+      setShortRestWarning(
+        `Gentle tip: You rested less than 30s. For ${exerciseName}, taking full 60s–120s allows ATP replenish for heavier reps.`
+      );
+      setTimeout(() => setShortRestWarning(null), 6000);
+    }
+    setLastSetTimestamp(now);
+
+    // Calculate smart recommended rest based on exercise (120s for leg compounds, 90-105s for presses, 75s for isolation)
+    const recommendedRest = getExerciseRecommendedRest(exerciseName);
+
     setRestTimerConfig({
       mode: 'set',
-      seconds: 90
+      seconds: recommendedRest
     });
 
     if (isNewPr) {
@@ -151,7 +184,6 @@ export default function WorkoutTab({
   };
 
   const handleStartTransitionTimer = (currentExName) => {
-    // Find next exercise name
     if (activeSession) {
       const idx = activeSession.exercises.findIndex((e) => e.name === currentExName);
       const nextEx = activeSession.exercises[idx + 1];
@@ -192,10 +224,10 @@ export default function WorkoutTab({
       name: customExerciseName.trim(),
       muscleGroup: customMuscleGroup,
       customVideoUrl: customVideoUrl.trim(),
+      restSeconds: getExerciseRecommendedRest(customExerciseName.trim()),
       sets: [
-        { setNumber: 1, weight: 50, reps: 10, completed: false, isPr: false },
-        { setNumber: 2, weight: 50, reps: 10, completed: false, isPr: false },
-        { setNumber: 3, weight: 50, reps: 10, completed: false, isPr: false }
+        { setNumber: 1, weight: 40, reps: 10, completed: false, isPr: false },
+        { setNumber: 2, weight: 40, reps: 10, completed: false, isPr: false }
       ]
     };
 
@@ -231,7 +263,6 @@ export default function WorkoutTab({
     }
   };
 
-  // Calculate session volume & completed sets
   const currentExercises = activeSession?.exercises || [];
   const completedSetsCount = currentExercises.reduce(
     (acc, ex) => acc + (ex.sets ? ex.sets.filter((s) => s.completed).length : 0),
@@ -250,7 +281,7 @@ export default function WorkoutTab({
   }, 0);
 
   return (
-    <div className="space-y-5 pb-32 animate-in fade-in duration-200">
+    <div className="space-y-5 pb-36 animate-in fade-in duration-200">
       {/* PR Toast Banner */}
       {newPrNotice && (
         <div className="sticky top-2 z-50 animate-pr-pop bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between">
@@ -273,21 +304,29 @@ export default function WorkoutTab({
         </div>
       )}
 
+      {/* Short Rest Warning Banner */}
+      {shortRestWarning && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 p-3.5 rounded-2xl flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300 animate-in fade-in">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="leading-relaxed font-medium">{shortRestWarning}</p>
+        </div>
+      )}
+
       {/* ─────────────────────────────────────────────────────────────
           SECTION 1 (TOP): TODAY'S SCHEDULED WORKOUT CARD
           Automatically detects Monday-Sunday and shows full routine
          ───────────────────────────────────────────────────────────── */}
-      {!isSundayRest ? (
+      {!isRestDay ? (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 dark:from-[#181B20] dark:via-[#1A1E24] dark:to-[#0F1115] text-white p-5 sm:p-6 shadow-xl border border-blue-500/20 dark:border-[#2D333B]">
           <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 dark:bg-[#A3E635]/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Today Header Tag */}
           <div className="flex items-center justify-between mb-2">
             <span className="px-3 py-1 rounded-full bg-white/20 dark:bg-[#A3E635]/20 text-white dark:text-[#A3E635] text-xs font-black tracking-wider uppercase flex items-center gap-1.5 backdrop-blur-xs">
-              <Calendar className="w-3.5 h-3.5" /> {todayDayName}'s Scheduled Routine
+              <Calendar className="w-3.5 h-3.5" /> {todayDayName}'s Program
             </span>
             <span className="text-xs font-bold uppercase tracking-wider text-blue-100 dark:text-slate-400">
-              {todayRoutine.category} Focus
+              {todayRoutine.category} (2 Sets Focus)
             </span>
           </div>
 
@@ -295,10 +334,10 @@ export default function WorkoutTab({
             {todayRoutine.name}
           </h2>
           <p className="text-blue-100 dark:text-slate-400 text-xs mt-1">
-            {todayRoutine.exercises?.length || 0} exercises programmed for maximum hypertrophy.
+            {todayRoutine.description}
           </p>
 
-          {/* Full Exercise List for Today */}
+          {/* Full Exercise List for Today with Rest Timing Cues */}
           <div className="mt-4 pt-3 border-t border-white/15 dark:border-[#2D333B] space-y-2">
             {(todayRoutine.exercises || []).map((ex, idx) => {
               const muscle = ex.muscleGroup || getExerciseMuscleGroup(ex.name);
@@ -330,7 +369,7 @@ export default function WorkoutTab({
                       <Video className="w-4 h-4" />
                     </button>
                     <span className="text-[11px] font-mono text-blue-100 dark:text-slate-400 font-semibold">
-                      {ex.targetSets}×{ex.defaultReps}
+                      {ex.targetSets}×{ex.defaultReps}r ({ex.restSeconds}s rest)
                     </span>
                   </div>
                 </div>
@@ -346,7 +385,7 @@ export default function WorkoutTab({
                 className="flex-1 py-4 px-6 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 dark:bg-[#A3E635] dark:text-black dark:hover:bg-lime-400 font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-lg active:scale-98 transition-all cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
-                <span>Start Today's Workout ({todayRoutine.category})</span>
+                <span>Start {todayDayName}'s Workout ({todayRoutine.category})</span>
               </button>
               <button
                 onClick={startEmptySession}
@@ -358,26 +397,80 @@ export default function WorkoutTab({
           )}
         </div>
       ) : (
-        /* SUNDAY RECOVERY CARD */
-        <div className="rounded-3xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 text-white p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        /* REST & RECOVERY CARD (Tue, Thu, Sun) */
+        <div className="rounded-3xl bg-gradient-to-br from-teal-500 via-emerald-600 to-cyan-700 text-white p-5 sm:p-6 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black tracking-wider uppercase flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Sunday Active Recovery & Rest
+              <HeartPulse className="w-3.5 h-3.5" /> {todayDayName} Rest & Recovery Day
             </span>
-            <span className="text-xs font-bold uppercase text-emerald-100">Optimal Growth</span>
+            <span className="text-xs font-bold uppercase text-teal-100">Muscle Repair</span>
           </div>
-          <h2 className="text-xl font-black text-white">Muscle Growth Happens on Rest Days</h2>
-          <p className="text-emerald-100 text-xs mt-1">
-            Focus on 8 hours of sleep, light 20-minute mobility/foam rolling, and hitting your protein goal.
+          <h2 className="text-xl font-black text-white">Muscles Rebuild on Rest Days</h2>
+          <p className="text-teal-100 text-xs mt-1.5 leading-relaxed">
+            {todayRoutine.description}
           </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">💧 3-4L Water</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🚶 20 min light walk</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🍗 Hit 140g protein</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">😴 8:30 PM bedtime</span>
+          </div>
           {!activeSession && (
             <div className="mt-4">
               <button
                 onClick={startEmptySession}
-                className="py-3 px-5 rounded-2xl bg-white text-slate-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md hover:bg-slate-100 active:scale-95 transition-all"
+                className="py-2.5 px-4 rounded-2xl bg-white text-slate-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
               >
-                <Play className="w-4 h-4 fill-current" /> Start Optional Workout
+                <Play className="w-4 h-4 fill-current" /> Optional Freestyle Workout
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          WARM-UP CHECKLIST (COLLAPSIBLE 5-8 MIN PRE-WORKOUT)
+         ───────────────────────────────────────────────────────────── */}
+      {activeSession && (
+        <div className="bg-white dark:bg-[#181B20] rounded-3xl p-4 border border-slate-200/80 dark:border-[#2D333B] shadow-xs">
+          <button
+            onClick={() => setShowWarmup(!showWarmup)}
+            className="w-full flex items-center justify-between text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-amber-500" />
+              <div>
+                <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                  5–8 Min Dynamic Warm-Up Routine
+                </h4>
+                <span className="text-[10px] text-slate-400">
+                  Prime shoulders, hips & nervous system for heavy lifts
+                </span>
+              </div>
+            </div>
+            {showWarmup ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          </button>
+
+          {showWarmup && (
+            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-[#22262E] space-y-2">
+              {WARMUP_ROUTINE.map((w) => {
+                const checked = warmupChecked[w.id];
+                return (
+                  <div
+                    key={w.id}
+                    onClick={() => setWarmupChecked({ ...warmupChecked, [w.id]: !checked })}
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#22262E]/70 flex items-center justify-between text-xs cursor-pointer select-none"
+                  >
+                    <div>
+                      <span className={`font-bold block ${checked ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                        {w.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{w.reps}</span>
+                    </div>
+                    <CheckCircle2 className={`w-4 h-4 ${checked ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600'}`} />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -417,6 +510,54 @@ export default function WorkoutTab({
           >
             <Plus className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Add Another Exercise
           </button>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          COOL-DOWN CHECKLIST (COLLAPSIBLE 3-5 MIN POST-WORKOUT)
+         ───────────────────────────────────────────────────────────── */}
+      {activeSession && (
+        <div className="bg-white dark:bg-[#181B20] rounded-3xl p-4 border border-slate-200/80 dark:border-[#2D333B] shadow-xs">
+          <button
+            onClick={() => setShowCooldown(!showCooldown)}
+            className="w-full flex items-center justify-between text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <HeartPulse className="w-4 h-4 text-teal-500" />
+              <div>
+                <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                  3–5 Min Post-Workout Cool-Down & Stretch
+                </h4>
+                <span className="text-[10px] text-slate-400">
+                  Release muscle tightness & restore resting heart rate
+                </span>
+              </div>
+            </div>
+            {showCooldown ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          </button>
+
+          {showCooldown && (
+            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-[#22262E] space-y-2">
+              {COOLDOWN_ROUTINE.map((c) => {
+                const checked = cooldownChecked[c.id];
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setCooldownChecked({ ...cooldownChecked, [c.id]: !checked })}
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#22262E]/70 flex items-center justify-between text-xs cursor-pointer select-none"
+                  >
+                    <div>
+                      <span className={`font-bold block ${checked ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                        {c.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{c.duration}</span>
+                    </div>
+                    <CheckCircle2 className={`w-4 h-4 ${checked ? 'text-teal-500' : 'text-slate-300 dark:text-slate-600'}`} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
