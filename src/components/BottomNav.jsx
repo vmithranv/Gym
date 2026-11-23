@@ -1,9 +1,10 @@
 import React from 'react';
-import { Dumbbell, Calendar, TrendingUp, UtensilsCrossed, Layers } from 'lucide-react';
+import { Dumbbell, Calendar, TrendingUp, UtensilsCrossed, Layers, Heart } from 'lucide-react';
 
 export default function BottomNav({ activeTab, setActiveTab, activeWorkoutInProgress }) {
   const tabs = [
     { id: 'workout', label: 'Workout', icon: Dumbbell, hasBadge: activeWorkoutInProgress },
+    { id: 'cardio', label: 'Cardio', icon: Heart },
     { id: 'guide', label: 'Guide', icon: Layers },
     { id: 'routines', label: 'Routines', icon: Calendar },
     { id: 'progress', label: 'Progress', icon: TrendingUp },

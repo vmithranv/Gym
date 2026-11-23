@@ -16,6 +16,7 @@ import RoutinesTab from './components/RoutinesTab';
 import ProgressTab from './components/ProgressTab';
 import NutritionTab from './components/NutritionTab';
 import ExerciseGuideTab from './components/ExerciseGuideTab';
+import CardioTab from './components/CardioTab';
 import ExerciseFormModal from './components/ExerciseFormModal';
 import { Dumbbell, Sun, Moon, Sparkles } from 'lucide-react';
 
@@ -214,6 +215,10 @@ export default function App() {
             onRecordPr={handleRecordPr}
             onOpenFormGuide={setSelectedGuideExercise}
           />
+        )}
+
+        {activeTab === 'cardio' && (
+          <CardioTab />
         )}
 
         {activeTab === 'guide' && (
