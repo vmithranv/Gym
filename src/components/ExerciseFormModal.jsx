@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, Sparkles, Layers, Activity } from 'lucide-react';
-import { EXERCISE_GUIDES, MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
+import { X, Sparkles, Layers, Activity, Video, ExternalLink } from 'lucide-react';
+import { EXERCISE_GUIDES, MUSCLE_GROUP_CONFIG, extractYoutubeId, getExerciseMuscleGroup } from '../utils/exerciseData';
 import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
 import AnatomicalMuscleVisual from './AnatomicalMuscleVisual';
 import ExerciseAnimation from './ExerciseAnimation';
@@ -20,6 +20,13 @@ export default function ExerciseFormModal({ exercise, onClose }) {
 
   const beginner = BEGINNER_EXERCISE_GUIDES[exerciseName] || {};
   const guide = EXERCISE_GUIDES[exerciseName] || {};
+
+  const customYoutubeId = exercise?.customVideoUrl ? extractYoutubeId(exercise.customVideoUrl) : '';
+  const videoId = customYoutubeId || beginner?.youtubeId || guide?.youtubeId;
+
+  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+    exerciseName + ' proper form exercise tutorial'
+  )}`;
 
   // Specific tempo cue
   const tempoCue = beginner?.tempo || '2s Lower • 1s Squeeze • 2s Push/Pull';
@@ -53,7 +60,7 @@ export default function ExerciseFormModal({ exercise, onClose }) {
                 {muscleGroup}
               </span>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Visual Muscle Guide & Tempo
+                Visual Muscle Guide & YouTube Video
               </span>
             </div>
             <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
@@ -72,7 +79,51 @@ export default function ExerciseFormModal({ exercise, onClose }) {
 
         {/* Modal Scrollable Body */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
-          {/* Side-by-Side Clean Visual Reference (Anatomical Highlight + Movement Animation) */}
+          {/* YouTube Video Player Embed or Fallback */}
+          <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-video shadow-md border border-slate-200 dark:border-slate-800">
+            {videoId ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`}
+                title={`${exerciseName} Tutorial`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full border-0"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-300">
+                <Video className="w-12 h-12 text-rose-500 mb-2" />
+                <p className="text-sm font-bold text-white mb-1">Video Tutorial Available</p>
+                <p className="text-xs text-slate-400 max-w-xs mb-3">
+                  Watch top certified strength trainers demonstrate {exerciseName} on YouTube.
+                </p>
+                <a
+                  href={youtubeSearchUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs uppercase tracking-wider transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Watch on YouTube
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Fallback / Alternative Angles Link */}
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#22262E]/50 p-3 rounded-2xl border border-slate-100 dark:border-[#2D333B]">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Video className="w-4 h-4 text-rose-500" /> Need more tips or angles?
+            </span>
+            <a
+              href={youtubeSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-bold text-blue-600 dark:text-sky-400 hover:underline flex items-center gap-1"
+            >
+              Search on YouTube <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          {/* Side-by-Side Visual Reference (Anatomical Highlight + Movement Animation) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* 1. Anatomical Muscle Highlight Diagram */}
             <div className="flex flex-col gap-1.5">
