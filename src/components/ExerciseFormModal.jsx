@@ -155,6 +155,73 @@ export default function ExerciseFormModal({ exercise, onClose }) {
             </div>
           </div>
 
+          {/* Structured Exercise Information & Description Block */}
+          <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-[#20242C] dark:to-[#181B20] p-4 rounded-2xl border border-slate-200/80 dark:border-[#2D333B] space-y-3">
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-teal-500 dark:text-[#A3E635]" />
+              Exercise Overview & Biomechanics
+            </h4>
+
+            {/* 1. What It Does */}
+            <div>
+              <span className="text-[10px] font-black uppercase text-teal-600 dark:text-[#A3E635] block">
+                What It Does:
+              </span>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium mt-0.5">
+                {beginner.whatItDoes || `Builds mechanical tension and progressive overload in the ${muscleGroup}, driving muscle hypertrophy and joint stabilization.`}
+              </p>
+            </div>
+
+            {/* 2. Target Muscles */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 rounded-xl bg-white/70 dark:bg-[#181B20] border border-slate-200/60 dark:border-[#2D333B]">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Primary Muscle</span>
+                <strong className="text-blue-600 dark:text-[#A3E635] font-extrabold text-[11px]">
+                  {beginner.targetMuscle || muscleGroup}
+                </strong>
+              </div>
+              <div className="p-2 rounded-xl bg-white/70 dark:bg-[#181B20] border border-slate-200/60 dark:border-[#2D333B]">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Stabilizers</span>
+                <strong className="text-slate-700 dark:text-slate-300 font-extrabold text-[11px]">
+                  {beginner.stabilizers || 'Core & Joint Stabilizers'}
+                </strong>
+              </div>
+            </div>
+
+            {/* 3. Step-by-Step Execution */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">
+                Step-by-Step Execution:
+              </span>
+              <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                <div className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-blue-500/15 text-blue-600 dark:text-[#A3E635] text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
+                  <p><strong>Setup:</strong> {beginner.step1 || 'Plant feet firmly and grip barbell or dumbbells with wrists straight.'}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-blue-500/15 text-blue-600 dark:text-[#A3E635] text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
+                  <p><strong>Movement:</strong> {beginner.step2 || 'Initiate the rep by squeezing the target muscle smoothly through full range.'}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-blue-500/15 text-blue-600 dark:text-[#A3E635] text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">3</span>
+                  <p><strong>Eccentric Control:</strong> {beginner.step3 || 'Lower the weight under a strict 2-3 second stretch back to starting point.'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Common Mistake to Avoid */}
+            {beginner.commonMistake && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 block">
+                  ⚠️ Common Mistake to Avoid:
+                </span>
+                <p className="text-amber-700 dark:text-amber-200 text-[11px] font-medium mt-0.5">
+                  {beginner.commonMistake}
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Tempo Banner */}
           <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 flex items-center justify-between text-xs">
             <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">

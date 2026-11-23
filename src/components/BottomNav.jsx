@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Dumbbell, Layers, Heart, TrendingUp, UtensilsCrossed } from 'lucide-react';
+import { Home, Dumbbell, Layers, Heart, TrendingUp, UtensilsCrossed, User } from 'lucide-react';
 
 export default function BottomNav({ activeTab, setActiveTab, activeWorkoutInProgress }) {
   const tabs = [
@@ -8,7 +8,8 @@ export default function BottomNav({ activeTab, setActiveTab, activeWorkoutInProg
     { id: 'exercises', label: 'Exercises', icon: Layers },
     { id: 'cardio', label: 'Cardio', icon: Heart },
     { id: 'stats', label: 'Stats', icon: TrendingUp },
-    { id: 'nutrition', label: 'Nutrition', icon: UtensilsCrossed },
+    { id: 'nutrition', label: 'Food', icon: UtensilsCrossed },
+    { id: 'profile', label: 'Profile', icon: User },
   ];
 
   return (

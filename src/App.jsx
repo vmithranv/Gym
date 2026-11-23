@@ -18,12 +18,39 @@ import ProgressTab from './components/ProgressTab';
 import NutritionTab from './components/NutritionTab';
 import ExerciseLibraryTab from './components/ExerciseLibraryTab';
 import CardioTab from './components/CardioTab';
+import ProfileTab from './components/ProfileTab';
 import ExerciseFormModal from './components/ExerciseFormModal';
 import FloatingAICoach from './components/FloatingAICoach';
-import { Dumbbell, Sun, Moon, Sparkles } from 'lucide-react';
+import AuthModal from './components/AuthModal';
+import { getStoredUser, logoutUser, persistUser } from './utils/authService';
+import { Dumbbell, Sun, Moon, Sparkles, User as UserIcon } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(() => getStoredUser());
+  const [showAuthModal, setShowAuthModal] = useState(() => !getStoredUser());
+  const [isUpgradeAuth, setIsUpgradeAuth] = useState(false);
+
+  const handleAuthSuccess = (user) => {
+    setCurrentUser(user);
+    persistUser(user);
+    setShowAuthModal(false);
+    setIsUpgradeAuth(false);
+  };
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
+    setShowAuthModal(true);
+    setIsUpgradeAuth(false);
+  };
+
+  const handleOpenUpgradeAuth = () => {
+    setIsUpgradeAuth(true);
+    setShowAuthModal(true);
+  };
 
   // Theme Mode: 'light' or 'dark' (Default to colorful vibrant light mode)
   const [theme, setTheme] = useState(() => {
@@ -275,10 +302,29 @@ export default function App() {
             onUpdateNutrition={setNutritionData}
           />
         )}
+
+        {activeTab === 'profile' && (
+          <ProfileTab
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            onOpenUpgradeAuth={handleOpenUpgradeAuth}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+          />
+        )}
       </main>
 
       {/* Floating AI Coach Assistant Drawer */}
       <FloatingAICoach />
+
+      {/* Authentication Modal / Initial Launch Gate */}
+      {showAuthModal && (
+        <AuthModal
+          onAuthSuccess={handleAuthSuccess}
+          onClose={currentUser ? () => setShowAuthModal(false) : null}
+          isUpgrade={isUpgradeAuth}
+        />
+      )}
 
       {/* Exercise Form Demonstration Modal */}
       {selectedGuideExercise && (

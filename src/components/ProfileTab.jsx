@@ -1,0 +1,415 @@
+import React, { useState } from 'react';
+import {
+  User,
+  LogOut,
+  Mail,
+  Shield,
+  Dumbbell,
+  Scale,
+  Calendar,
+  Clock,
+  Target,
+  Sun,
+  Moon,
+  Download,
+  Upload,
+  Check,
+  ChevronRight,
+  Flame,
+  Award,
+  Sparkles,
+  Link,
+  BellRing
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { loadFromStorage, saveToStorage } from '../utils/storage';
+
+export default function ProfileTab({
+  currentUser,
+  onLogout,
+  onOpenUpgradeAuth,
+  isDark,
+  onToggleTheme
+}) {
+  // Fitness Profile state persisted in localStorage
+  const [profile, setProfile] = useState(() =>
+    loadFromStorage('repkraft_user_profile_data', {
+      displayName: currentUser?.displayName || 'Mithran',
+      age: '24',
+      heightCm: '160',
+      weightKg: '65',
+      experience: '1–3 Months (Beginner)',
+      wakeUpTime: '5:00 AM',
+      gymTime: '6:00 AM',
+      primaryGoal: 'Overall Stronger & Muscular Physique',
+      weightUnit: 'kg'
+    })
+  );
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(false);
+
+  // Handle Save
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    saveToStorage('repkraft_user_profile_data', profile);
+    setIsEditing(false);
+    setSaveNotice(true);
+    try {
+      confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+    } catch (e) {}
+    setTimeout(() => setSaveNotice(false), 2500);
+  };
+
+  // Export / Backup all localStorage data to JSON file
+  const handleExportData = () => {
+    try {
+      const dataBackup = {
+        exportedAt: new Date().toISOString(),
+        user: currentUser,
+        profile: profile,
+        routines: loadFromStorage('routines', []),
+        records: loadFromStorage('records', {}),
+        progression: loadFromStorage('progression', {}),
+        weightHistory: loadFromStorage('weight_history', []),
+        workoutHistory: loadFromStorage('workout_history', []),
+        cardioLogs: loadFromStorage('cardio_logs', []),
+        savedReelLinks: loadFromStorage('saved_reel_links', {})
+      };
+
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dataBackup, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `RepKraft_Backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err) {
+      alert('Failed to export data: ' + err.message);
+    }
+  };
+
+  const isGuest = !currentUser || currentUser.isGuest;
+
+  return (
+    <div className="space-y-4 pb-32 animate-in fade-in duration-200">
+      {/* Top Banner */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <User className="w-5 h-5 text-teal-600 dark:text-[#A3E635]" />
+            Athlete Profile
+          </h2>
+          {isGuest && (
+            <button
+              onClick={onOpenUpgradeAuth}
+              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-teal-500 to-blue-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <Link className="w-3.5 h-3.5" /> Link Account
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Manage your personal fitness metrics, account details, and workout backups.
+        </p>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          1. USER CARD (AVATAR, NAME, EMAIL, LOGOUT)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            {/* Avatar Photo or Initial */}
+            {currentUser?.photoURL ? (
+              <img
+                src={currentUser.photoURL}
+                alt="Profile"
+                className="w-14 h-14 rounded-2xl object-cover border-2 border-teal-500 shadow-sm"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600 dark:from-[#A3E635] dark:to-emerald-400 text-white dark:text-black font-black text-xl flex items-center justify-center shadow-md">
+                {(currentUser?.displayName || profile.displayName || 'A').charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-base text-slate-900 dark:text-white leading-tight">
+                  {currentUser?.displayName || profile.displayName || 'RepKraft Lifter'}
+                </h3>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                    isGuest
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-[#A3E635] border border-emerald-500/30'
+                  }`}
+                >
+                  {isGuest ? 'Guest' : 'Verified'}
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
+                {currentUser?.email || 'Offline Guest Account (Data in localStorage)'}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={onLogout}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-slate-500 hover:text-rose-500 transition-colors cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Guest Upgrade Banner */}
+        {isGuest && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-500/10 via-blue-500/10 to-indigo-500/10 border border-teal-500/25 flex items-center justify-between text-xs">
+            <div>
+              <strong className="text-teal-900 dark:text-teal-300 font-bold block">
+                Upgrade from Guest:
+              </strong>
+              <span className="text-slate-600 dark:text-slate-300 text-[11px]">
+                Sign in with Google to protect your records from browser cache clears.
+              </span>
+            </div>
+            <button
+              onClick={onOpenUpgradeAuth}
+              className="px-3 py-1.5 rounded-xl bg-teal-600 dark:bg-[#A3E635] text-white dark:text-black font-extrabold text-[10px] uppercase shrink-0 shadow-xs active:scale-95 transition-all"
+            >
+              Sign In
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          2. FITNESS & BODY DETAILS CARD (EDITABLE & SAVED)
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Dumbbell className="w-4 h-4 text-teal-600 dark:text-[#A3E635]" />
+            <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+              Body & Gym Schedule Details
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {saveNotice && (
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-[#A3E635] flex items-center gap-1 animate-in fade-in">
+                <Check className="w-3.5 h-3.5 stroke-[3]" /> Saved!
+              </span>
+            )}
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="text-xs font-bold text-teal-600 dark:text-[#A3E635] hover:underline cursor-pointer"
+            >
+              {isEditing ? 'Cancel' : 'Edit Details'}
+            </button>
+          </div>
+        </div>
+
+        {isEditing ? (
+          <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  Current Weight (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={profile.weightKg}
+                  onChange={(e) => setProfile({ ...profile, weightKg: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  Height (cm)
+                </label>
+                <input
+                  type="number"
+                  value={profile.heightCm}
+                  onChange={(e) => setProfile({ ...profile, heightCm: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-mono font-bold"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  Age
+                </label>
+                <input
+                  type="number"
+                  value={profile.age}
+                  onChange={(e) => setProfile({ ...profile, age: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-mono font-bold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  Experience Level
+                </label>
+                <select
+                  value={profile.experience}
+                  onChange={(e) => setProfile({ ...profile, experience: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-bold"
+                >
+                  <option value="1–3 Months (Beginner)">1–3 Months (Beginner)</option>
+                  <option value="3–6 Months (Intermediate)">3–6 Months (Intermediate)</option>
+                  <option value="6–12 Months">6–12 Months</option>
+                  <option value="1+ Year (Advanced)">1+ Year (Advanced)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  Wake-Up Time
+                </label>
+                <input
+                  type="text"
+                  value={profile.wakeUpTime}
+                  onChange={(e) => setProfile({ ...profile, wakeUpTime: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  Gym Time
+                </label>
+                <input
+                  type="text"
+                  value={profile.gymTime}
+                  onChange={(e) => setProfile({ ...profile, gymTime: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-bold"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                Primary Goal
+              </label>
+              <input
+                type="text"
+                value={profile.primaryGoal}
+                onChange={(e) => setProfile({ ...profile, primaryGoal: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-bold"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-[#22262E] font-bold text-slate-600 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-teal-600 dark:bg-[#A3E635] text-white dark:text-black font-extrabold uppercase text-xs shadow-md"
+              >
+                Save Details
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B]">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Current Weight</span>
+              <span className="text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5 block">
+                {profile.weightKg} kg
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B]">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Height</span>
+              <span className="text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5 block">
+                {profile.heightCm} cm
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B]">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Daily Timetable</span>
+              <span className="text-xs font-black text-slate-900 dark:text-white mt-0.5 block">
+                {profile.wakeUpTime} Wake • {profile.gymTime} Gym
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B]">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Experience</span>
+              <span className="text-xs font-black text-slate-900 dark:text-white mt-0.5 block">
+                {profile.experience}
+              </span>
+            </div>
+
+            <div className="col-span-2 p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B]">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Primary Fitness Goal</span>
+              <span className="text-xs font-black text-slate-900 dark:text-white mt-0.5 block">
+                🎯 {profile.primaryGoal}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          3. APP PREFERENCES & DATA BACKUP / EXPORT
+         ───────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-3">
+        <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+          Preferences & Data Protection
+        </h3>
+
+        {/* Theme Mode Toggle */}
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B] text-xs">
+          <div className="flex items-center gap-2.5">
+            {isDark ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+            <span className="font-bold text-slate-800 dark:text-slate-200">
+              Theme: {isDark ? 'Neon Dark Mode' : 'Vibrant Light Mode'}
+            </span>
+          </div>
+          <button
+            onClick={onToggleTheme}
+            className="px-3 py-1 rounded-xl bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] font-bold text-[11px] shadow-2xs cursor-pointer"
+          >
+            Switch
+          </button>
+        </div>
+
+        {/* Export / Backup Data Button */}
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B] text-xs">
+          <div>
+            <span className="font-bold text-slate-800 dark:text-slate-200 block">
+              Backup / Export Data (JSON)
+            </span>
+            <span className="text-[10px] text-slate-400">
+              Save your workouts, PRs, and reel bookmarks to an offline file.
+            </span>
+          </div>
+          <button
+            onClick={handleExportData}
+            className="px-3 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-600 dark:text-[#A3E635] border border-teal-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
