@@ -267,33 +267,40 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
 
   return (
     <div className="space-y-5 pb-32 animate-in fade-in duration-200">
-      {/* Top Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <UtensilsCrossed className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Kerala Fuel & Nutrition
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            5:00 AM wake / 6:00 AM gym timetable, protein rotations & healthy habits.
-          </p>
-        </div>
+      {/* Signature Hero Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 shadow-xl border border-teal-500/20">
+        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> Fuel & Recovery
+            </span>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <UtensilsCrossed className="w-6 h-6 text-white" />
+              Daily Fuel & Kerala Macro Plan
+            </h2>
+            <p className="text-blue-100 text-xs font-medium mt-1">
+              Tailored around your 6:00 AM workout schedule, high-protein rotation, and calorie goals.
+            </p>
+          </div>
 
-        <button
-          onClick={() => setShowTargetModal(true)}
-          className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#22262E] hover:bg-slate-50 dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2D333B] text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
-        >
-          <Target className="w-3.5 h-3.5 text-blue-600 dark:text-[#A3E635]" /> Set Targets
-        </button>
+          <button
+            onClick={() => setShowTargetModal(true)}
+            className="hero-pill-badge hover:bg-white/30 text-white border border-white/25 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 active:scale-95 transition-all shadow-xs cursor-pointer"
+          >
+            <Target className="w-3.5 h-3.5 text-emerald-300" /> Targets
+          </button>
+        </div>
       </div>
 
       {/* Main Calories & Macro Overview Card */}
-      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-[#A3E635]/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="repkraft-card rounded-2xl p-5 shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
 
         {/* Calories Highlight */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-[#A3E635] flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 flex items-center gap-1">
               <Flame className="w-3.5 h-3.5 fill-current" /> Daily Target
             </span>
             <div className="flex items-baseline gap-2 mt-1">
@@ -303,7 +310,7 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
           </div>
 
           <div className="text-right">
-            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-[#A3E635]/20 dark:text-[#A3E635] border border-blue-200 dark:border-[#A3E635]/30">
+            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400 border border-teal-200 dark:border-teal-800">
               {calculatePercent(totals.calories, targets.calories)}%
             </span>
             <span className="block text-[11px] text-slate-400 dark:text-slate-500 mt-1">

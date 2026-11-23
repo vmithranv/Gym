@@ -283,34 +283,40 @@ export default function CardioTab() {
   return (
     <div className="space-y-5 pb-32 animate-in fade-in duration-200">
       {/* ─────────────────────────────────────────────────────────────
-          1. HEADER & WEEKLY METRICS STRIP
+          1. SIGNATURE HERO BANNER & WEEKLY METRICS STRIP
          ───────────────────────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Heart className="w-5 h-5 text-rose-500 fill-rose-500 animate-pulse" />
-            Cardio & Active Recovery
-          </h2>
+      <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 shadow-xl border border-teal-500/20">
+        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> Active Recovery
+            </span>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <Heart className="w-6 h-6 text-white fill-white animate-pulse" />
+              Cardio & Endurance
+            </h2>
+            <p className="text-blue-100 text-xs font-medium mt-1">
+              Structured intervals designed around your Push-Pull-Legs split to burn fat and speed recovery without draining leg strength.
+            </p>
+          </div>
           <button
             onClick={() => setShowQuickLogModal(true)}
-            className="px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+            className="hero-pill-badge hover:bg-white/30 text-white border border-white/25 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 active:scale-95 transition-all cursor-pointer shadow-xs"
           >
-            <Plus className="w-3.5 h-3.5" /> Log Cardio
+            <Plus className="w-3.5 h-3.5 text-emerald-300" /> Log Cardio
           </button>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Structured intervals designed around your Push-Pull-Legs split to burn fat and speed recovery without draining leg strength.
-        </p>
       </div>
 
       {/* Smart Leg Day Warning Banner */}
-      <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/25 flex items-start gap-2.5 text-xs">
-        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+      <div className="p-4 rounded-2xl peach-gradient border border-orange-200/60 dark:border-orange-500/20 flex items-start gap-3 text-xs shadow-xs">
+        <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
         <div>
-          <strong className="text-amber-800 dark:text-amber-300 font-bold block text-xs">
+          <strong className="text-orange-950 dark:text-orange-300 font-bold block text-xs">
             Smart 6-Day PPL Reminder:
           </strong>
-          <p className="text-amber-700 dark:text-amber-200/90 leading-relaxed text-[11px] mt-0.5 font-medium">
+          <p className="text-orange-900/80 dark:text-orange-200/80 leading-relaxed text-[11px] mt-0.5 font-medium">
             Avoid intense cycling or stair climbing on <strong>Wednesday and Saturday (Leg Days)</strong>. Do 10-min light walks after Push/Pull days (Mon, Tue, Thu, Fri) and longer 25–30 min brisk walks on <strong>Sunday Rest Day</strong>.
           </p>
         </div>
@@ -318,13 +324,13 @@ export default function CardioTab() {
 
       {/* Weekly Cardio Summary Pill */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] shadow-xs flex items-center gap-3">
+        <div className="p-3.5 rounded-2xl repkraft-card flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
             <Flame className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Last 7 Days Cardio
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+              LAST 7 DAYS
             </span>
             <span className="text-base font-black text-slate-900 dark:text-white">
               {weeklyMinutes} <span className="text-xs font-semibold text-slate-400">mins</span>
@@ -332,13 +338,13 @@ export default function CardioTab() {
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] shadow-xs flex items-center gap-3">
+        <div className="p-3.5 rounded-2xl repkraft-card flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Total Sessions
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+              SESSIONS
             </span>
             <span className="text-base font-black text-slate-900 dark:text-white">
               {cardioLogs.length} <span className="text-xs font-semibold text-slate-400">logged</span>
@@ -353,7 +359,7 @@ export default function CardioTab() {
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-            <Activity className="w-4 h-4 text-rose-500" />
+            <Activity className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             Cardio Interval Plans (4)
           </h3>
           <span className="text-[11px] text-slate-400">Tap "Start Timer" for auto-intervals</span>
@@ -366,7 +372,7 @@ export default function CardioTab() {
             return (
               <div
                 key={plan.id}
-                className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all space-y-3"
+                className="repkraft-card rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all space-y-3"
               >
                 {/* Card Header: Icon, Title, Duration & Best For Tag */}
                 <div className="flex items-start justify-between gap-3">

@@ -131,20 +131,26 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
 
   return (
     <div className="space-y-4 pb-32 animate-in fade-in duration-200">
-      {/* Header */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-teal-600 dark:text-[#A3E635]" />
-            Exercise Library
-          </h2>
-          <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#22262E] px-2.5 py-1 rounded-full">
-            {filteredExercises.length} Exercises
+      {/* Signature Hero Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 shadow-xl border border-teal-500/20">
+        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> Complete Database
+            </span>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <Layers className="w-6 h-6 text-white" />
+              Exercise Library
+            </h2>
+            <p className="text-blue-100 text-xs font-medium mt-1">
+              Search, filter by muscle or equipment, check 3D anatomical guides, and save your favourite video form tips.
+            </p>
+          </div>
+          <span className="hero-pill-badge text-white px-3 py-1.5 rounded-xl text-xs font-mono font-bold shrink-0 border border-white/20">
+            {filteredExercises.length} Total
           </span>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Search, filter by muscle or equipment, check 3D anatomical guides, and save your favourite Instagram Reels.
-        </p>
       </div>
 
       {/* Search Input Bar */}
@@ -155,7 +161,7 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
           placeholder="Search exercises by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200/80 dark:border-[#2D333B] text-xs font-medium shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200/80 dark:border-[#2D333B] text-xs font-medium shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         />
         {searchQuery && (
           <button

@@ -2,16 +2,26 @@
 
 @layer base {
   :root {
-    --bg-primary: #F8FAFC;
+    --bg-primary: #F4F7FA;
     --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --card-bg: #FFFFFF;
+    --card-border: #E2E8F0;
+    --input-bg: #F1F5F9;
   }
 
   .dark {
     --bg-primary: #0F1115;
     --text-primary: #FFFFFF;
+    --text-muted: #94A3B8;
+    --card-bg: #181B20;
+    --card-border: #2D333B;
+    --input-bg: #22262E;
   }
 
   body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     transition: background-color 0.25s ease, color 0.25s ease;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -33,6 +43,41 @@
   .dark ::-webkit-scrollbar-thumb {
     background: #2D333B;
   }
+}
+
+/* Standardized Signature Card & Gradient Tokens */
+.hero-gradient {
+  background: linear-gradient(135deg, #0D9488 0%, #0284C7 48%, #2563EB 100%);
+}
+
+.hero-pill-badge {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.peach-gradient {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FDF2F8 100%);
+}
+
+.dark .peach-gradient {
+  background: linear-gradient(135deg, rgba(254, 215, 170, 0.08) 0%, rgba(251, 207, 232, 0.05) 100%);
+}
+
+.repkraft-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+}
+
+.repkraft-btn-primary {
+  background-color: #059669;
+  color: #FFFFFF;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+.repkraft-btn-primary:hover {
+  background-color: #047857;
 }
 
 /* Animations */

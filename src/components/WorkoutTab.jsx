@@ -324,14 +324,14 @@ export default function WorkoutTab({
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-[#A3E635] block">
-              6-Day PPL Program
+            <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#0D9488] dark:text-[#A3E635] block">
+              6-DAY PPL PROGRAM
             </span>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white">
+            <h2 className="text-xl font-black text-[#0F172A] dark:text-white">
               Ready to Train?
             </h2>
           </div>
-          <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#22262E] px-2.5 py-1 rounded-full">
+          <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] px-3 py-1 rounded-full shadow-2xs">
             Today: {todayDayName}
           </span>
         </div>
@@ -359,8 +359,8 @@ export default function WorkoutTab({
                 onClick={() => setSelectedDayIndex(d.dayIndex)}
                 className={`flex-1 min-w-[46px] py-2 px-1 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${
                   isSelected
-                    ? 'bg-blue-600 dark:bg-[#A3E635] text-white dark:text-black shadow-md shadow-blue-500/20'
-                    : 'bg-white dark:bg-[#181B20] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-[#2D333B] hover:border-slate-300'
+                    ? 'bg-teal-700 dark:bg-[#A3E635] text-white dark:text-black shadow-md shadow-teal-700/20'
+                    : 'bg-white dark:bg-[#181B20] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2D333B] hover:border-slate-300'
                 }`}
               >
                 {isToday && (
@@ -385,32 +385,31 @@ export default function WorkoutTab({
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          SECTION 1 (TOP): SELECTED DAY'S WORKOUT CARD
-          Previews the tapped day's routine, with full CTA
+          SECTION 1 (TOP): SELECTED DAY'S WORKOUT CARD (HERO GRADIENT)
          ───────────────────────────────────────────────────────────── */}
       {!isSelectedRestDay ? (
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 dark:from-[#181B20] dark:via-[#1A1E24] dark:to-[#0F1115] text-white p-5 sm:p-6 shadow-xl border border-blue-500/20 dark:border-[#2D333B]">
-          <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 dark:bg-[#A3E635]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 sm:p-6 shadow-xl border border-teal-500/20">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Today Header Tag */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="px-3 py-1 rounded-full bg-white/20 dark:bg-[#A3E635]/20 text-white dark:text-[#A3E635] text-xs font-black tracking-wider uppercase flex items-center gap-1.5 backdrop-blur-xs">
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <span className="px-3 py-1 rounded-full hero-pill-badge text-white text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-2xs">
               <Calendar className="w-3.5 h-3.5" /> {selectedDayName}'s Program {selectedDayIndex === todayIndex && ' (Today)'}
             </span>
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-100 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-teal-100">
               {activeSelectedRoutine.category} (2 Sets Focus)
             </span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight relative z-10">
             {activeSelectedRoutine.name}
           </h2>
-          <p className="text-blue-100 dark:text-slate-400 text-xs mt-1">
+          <p className="text-teal-100 text-xs mt-1 relative z-10">
             {activeSelectedRoutine.description}
           </p>
 
           {/* Full Exercise List for Today with Rest Timing Cues */}
-          <div className="mt-4 pt-3 border-t border-white/15 dark:border-[#2D333B] space-y-2">
+          <div className="mt-4 pt-3 border-t border-white/20 space-y-2 relative z-10">
             {(activeSelectedRoutine.exercises || []).map((ex, idx) => {
               const muscle = ex.muscleGroup || getExerciseMuscleGroup(ex.name);
               const muscleStyle = MUSCLE_GROUP_CONFIG[muscle] || MUSCLE_GROUP_CONFIG.Other;
@@ -418,10 +417,10 @@ export default function WorkoutTab({
               return (
                 <div
                   key={idx}
-                  className="flex items-center justify-between bg-white/10 dark:bg-[#22262E]/70 p-2.5 rounded-2xl backdrop-blur-xs text-xs"
+                  className="flex items-center justify-between bg-white/15 p-2.5 rounded-xl backdrop-blur-xs text-xs"
                 >
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="w-5 h-5 rounded-md bg-white/20 dark:bg-[#181B20] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                    <span className="w-5 h-5 rounded-md bg-white/25 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                       {idx + 1}
                     </span>
                     <span className="font-bold text-white truncate">{ex.name}</span>
@@ -435,12 +434,12 @@ export default function WorkoutTab({
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => onOpenFormGuide(ex)}
-                      className="p-1 text-white/80 hover:text-white dark:text-[#A3E635] transition-colors"
+                      className="p-1 text-white hover:text-emerald-300 transition-colors"
                       title="Watch form video"
                     >
                       <Video className="w-4 h-4" />
                     </button>
-                    <span className="text-[11px] font-mono text-blue-100 dark:text-slate-400 font-semibold">
+                    <span className="text-[11px] font-mono text-teal-100 font-semibold">
                       {ex.targetSets}×{ex.defaultReps}r ({ex.restSeconds}s rest)
                     </span>
                   </div>
@@ -451,7 +450,7 @@ export default function WorkoutTab({
 
           {/* Start Today Workout Action */}
           {!activeSession && (
-            <div className="mt-5 flex flex-col sm:flex-row gap-2.5">
+            <div className="mt-5 flex flex-col sm:flex-row gap-2.5 relative z-10">
               <button
                 onClick={() => {
                   const newSession = {
@@ -471,25 +470,25 @@ export default function WorkoutTab({
                   };
                   setActiveSession(newSession);
                 }}
-                className="flex-1 py-4 px-6 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 dark:bg-[#A3E635] dark:text-black dark:hover:bg-lime-400 font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-lg active:scale-98 transition-all cursor-pointer"
+                className="flex-1 py-4 px-6 rounded-xl bg-white text-teal-800 hover:bg-slate-50 font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-lg active:scale-98 transition-all cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
                 <span>Start {selectedDayName}'s Workout ({activeSelectedRoutine.category})</span>
               </button>
               <button
                 onClick={startEmptySession}
-                className="py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/20 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/20 dark:border-[#2D333B] active:scale-98 transition-all backdrop-blur-xs cursor-pointer"
+                className="py-3.5 px-4 rounded-xl hero-pill-badge hover:bg-white/30 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/25 active:scale-98 transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4 text-emerald-300 dark:text-[#A3E635]" /> Freestyle
+                <Plus className="w-4 h-4 text-emerald-300" /> Freestyle
               </button>
             </div>
           )}
         </div>
       ) : (
         /* REST & RECOVERY CARD */
-        <div className="rounded-3xl bg-gradient-to-br from-teal-500 via-emerald-600 to-cyan-700 text-white p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="rounded-2xl hero-gradient text-white p-5 sm:p-6 shadow-xl relative overflow-hidden border border-teal-500/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black tracking-wider uppercase flex items-center gap-1.5">
+            <span className="px-3 py-1 rounded-full hero-pill-badge text-white text-xs font-black tracking-wider uppercase flex items-center gap-1.5">
               <HeartPulse className="w-3.5 h-3.5" /> {selectedDayName} Rest & Recovery Day
             </span>
             <span className="text-xs font-bold uppercase text-teal-100">Muscle Repair</span>
@@ -499,16 +498,16 @@ export default function WorkoutTab({
             {activeSelectedRoutine.description}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">💧 3-4L Water</span>
-            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🚶 25-30 min brisk walk</span>
-            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🍗 Hit 140g protein</span>
-            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">😴 8–10 hrs sleep</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/20 font-semibold">💧 3-4L Water</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/20 font-semibold">🚶 25-30 min brisk walk</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/20 font-semibold">🍗 Hit 140g protein</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/20 font-semibold">😴 8–10 hrs sleep</span>
           </div>
           {!activeSession && (
             <div className="mt-4">
               <button
                 onClick={startEmptySession}
-                className="py-2.5 px-4 rounded-2xl bg-white text-slate-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                className="py-2.5 px-4 rounded-xl bg-white text-teal-800 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current" /> Optional Freestyle Workout
               </button>

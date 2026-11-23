@@ -120,49 +120,64 @@ export default function ProgressTab({
 
   return (
     <div className="space-y-5 pb-28 animate-in fade-in duration-200">
-      {/* Top Header */}
-      <div>
-        <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-[#A3E635]" /> Strength & Milestones
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Track progressive overload, body composition, and your realistic muscle-growth journey.
-        </p>
+      {/* Signature Hero Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 shadow-xl border border-teal-500/20">
+        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> Analytics & History
+            </span>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-white" />
+              Your Progress & Journey
+            </h2>
+            <p className="text-blue-100 text-xs font-medium mt-1">
+              Consistency tracking, strength progression charts, and monthly workout calendar.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowWeightModal(true)}
+            className="hero-pill-badge hover:bg-white/30 text-white border border-white/25 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 active:scale-95 transition-all cursor-pointer shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5 text-emerald-300" /> Log Weight
+          </button>
+        </div>
       </div>
 
-      {/* 3 Summary Stats Cards with Colorful Vibrant Gradients */}
+      {/* 3 Summary Stats Cards */}
       <div className="grid grid-cols-3 gap-2.5">
-        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-3.5 rounded-3xl shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-blue-100 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider">Workouts</span>
-            <Dumbbell className="w-4 h-4 text-white" />
+        <div className="repkraft-card p-3.5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider">WORKOUTS</span>
+            <Dumbbell className="w-4 h-4 text-blue-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white leading-tight font-mono">{totalWorkouts}</div>
-            <div className="text-[10px] text-blue-100 font-medium">Completed</div>
+            <div className="text-xl font-black text-slate-900 dark:text-white leading-tight font-mono">{totalWorkouts}</div>
+            <div className="text-[10px] text-slate-400 font-medium">Logged</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-3.5 rounded-3xl shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-amber-100 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider">Streak</span>
-            <Flame className="w-4 h-4 text-white fill-white" />
+        <div className="repkraft-card p-3.5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider">STREAK</span>
+            <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white leading-tight font-mono">
-              {currentStreak} Days
+            <div className="text-xl font-black text-slate-900 dark:text-white leading-tight font-mono">
+              {currentStreak}d
             </div>
-            <div className="text-[10px] text-amber-100 font-medium">6:00 AM Active</div>
+            <div className="text-[10px] text-slate-400 font-medium">Active</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-3.5 rounded-3xl shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-emerald-100 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider">Volume</span>
-            <Layers className="w-4 h-4 text-white" />
+        <div className="repkraft-card p-3.5 rounded-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider">VOLUME</span>
+            <Layers className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white leading-tight font-mono">
+            <div className="text-xl font-black text-slate-900 dark:text-white leading-tight font-mono">
               {(totalVolumeKg / 1000).toFixed(1)}t
             </div>
             <div className="text-[10px] text-emerald-100 font-medium">Tonnes Lifted</div>

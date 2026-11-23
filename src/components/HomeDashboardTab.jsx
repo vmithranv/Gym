@@ -138,31 +138,31 @@ export default function HomeDashboardTab({
       {/* ─────────────────────────────────────────────────────────────
           1. GREETING CARD (TIME OF DAY & CONSISTENCY QUOTE)
          ───────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-500 via-blue-600 to-indigo-700 dark:from-[#181B20] dark:via-[#1B222C] dark:to-[#0F1115] text-white p-5 sm:p-6 shadow-xl border border-teal-500/20 dark:border-[#2D333B]">
-        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 dark:bg-[#A3E635]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 sm:p-6 shadow-xl border border-teal-500/20">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between relative z-10">
           <div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/20 dark:bg-[#A3E635]/20 text-white dark:text-[#A3E635] backdrop-blur-xs mb-2">
-              <Sparkles className="w-3.5 h-3.5" /> RepKraft Dashboard
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> RepKraft Dashboard
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
               {getGreeting()}, Athlete! 👋
             </h2>
-            <p className="text-blue-100 dark:text-slate-400 text-xs sm:text-sm font-medium mt-1">
+            <p className="text-blue-100 text-xs sm:text-sm font-medium mt-1">
               "Master your routine. Consistency is key!"
             </p>
           </div>
 
-          <div className="w-12 h-12 rounded-2xl bg-white/15 dark:bg-[#A3E635]/15 text-white dark:text-[#A3E635] flex items-center justify-center shrink-0 shadow-inner">
-            <Zap className="w-6 h-6 fill-current" />
+          <div className="w-12 h-12 rounded-2xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-inner backdrop-blur-md">
+            <Zap className="w-6 h-6 fill-current text-white" />
           </div>
         </div>
 
         {/* Quick CTA to today's workout */}
-        <div className="mt-4 pt-3 border-t border-white/15 dark:border-[#2D333B] flex items-center justify-between">
+        <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between relative z-10">
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-200 dark:text-slate-400 block">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-100 block">
               Today: {todayDayName}
             </span>
             <span className="text-xs font-black text-white">
@@ -171,7 +171,7 @@ export default function HomeDashboardTab({
           </div>
           <button
             onClick={() => onNavigateToTab('workout')}
-            className="px-3.5 py-1.5 rounded-xl bg-white text-blue-600 dark:bg-[#A3E635] dark:text-black font-extrabold text-xs flex items-center gap-1 shadow-md hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-white text-teal-800 font-extrabold text-xs flex items-center gap-1.5 shadow-md hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
           >
             <span>Train Now</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -182,7 +182,7 @@ export default function HomeDashboardTab({
       {/* ─────────────────────────────────────────────────────────────
           2. QUICK BODY WEIGHT CARD (PRE-FILLED WITH 65 KG)
          ───────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_rgba(15,23,42,0.05)] space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-600 dark:text-[#A3E635] flex items-center justify-center">
@@ -192,7 +192,7 @@ export default function HomeDashboardTab({
               <h3 className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
                 Body Weight Check-In
               </h3>
-              <span className="text-[11px] font-semibold text-slate-400">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Last: <strong className="text-teal-600 dark:text-[#A3E635]">{lastLoggedWeight} kg</strong>
               </span>
             </div>
@@ -213,7 +213,7 @@ export default function HomeDashboardTab({
               value={weightInput}
               onChange={(e) => setWeightInput(e.target.value)}
               placeholder="e.g. 65"
-              className="w-full pl-3 pr-10 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] font-mono text-sm font-black focus:outline-hidden focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] text-[#0F172A] dark:text-white border border-slate-200 dark:border-[#2D333B] font-mono text-sm font-black focus:outline-hidden focus:ring-2 focus:ring-teal-500"
             />
             <span className="absolute right-3.5 top-3 text-xs font-bold text-slate-400">
               kg
@@ -222,7 +222,7 @@ export default function HomeDashboardTab({
 
           <button
             type="submit"
-            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider shadow-md hover:opacity-95 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[3]" />
             <span>Save</span>
@@ -231,73 +231,73 @@ export default function HomeDashboardTab({
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          3. 3-STAT METRICS ROW (TOTAL WORKOUTS, TOTAL VOLUME, THIS WEEK)
+          3. 3-STAT METRICS ROW (CONCISE LABELS, NO TRUNCATION)
          ───────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-2.5">
         {/* Total Workouts */}
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] shadow-xs text-center space-y-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block truncate">
-            Total Workouts
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] shadow-[0_4px_20px_rgba(15,23,42,0.05)] text-center space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400 block">
+            WORKOUTS
           </span>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-white font-mono leading-none">
             {totalWorkouts}
           </div>
-          <span className="text-[10px] font-semibold text-teal-600 dark:text-[#A3E635] block">
+          <span className="text-[10px] font-bold text-teal-600 dark:text-[#A3E635] block">
             All-time
           </span>
         </div>
 
         {/* Total Volume */}
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] shadow-xs text-center space-y-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block truncate">
-            Total Volume
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] shadow-[0_4px_20px_rgba(15,23,42,0.05)] text-center space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400 block">
+            VOLUME
           </span>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono truncate">
+          <div className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-white font-mono leading-none">
             {totalVolumeKg > 1000 ? `${(totalVolumeKg / 1000).toFixed(1)}k` : totalVolumeKg}
           </div>
-          <span className="text-[10px] font-semibold text-blue-600 dark:text-sky-400 block">
+          <span className="text-[10px] font-bold text-blue-600 dark:text-sky-400 block">
             kg lifted
           </span>
         </div>
 
         {/* This Week */}
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] shadow-xs text-center space-y-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block truncate">
-            This Week
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] shadow-[0_4px_20px_rgba(15,23,42,0.05)] text-center space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400 block">
+            THIS WEEK
           </span>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
+          <div className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-white font-mono leading-none">
             {thisWeekCount}<span className="text-xs font-normal text-slate-400">/6</span>
           </div>
-          <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 block">
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
             Sessions
           </span>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          4. CURRENT STREAK BANNER ("On Fire!")
+          4. CURRENT STREAK BANNER (PEACH-TO-BLUSH SOFT GRADIENT)
          ───────────────────────────────────────────────────────────── */}
-      <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-rose-500/15 border border-amber-500/30 flex items-center justify-between shadow-xs">
+      <div className="p-4 rounded-2xl peach-gradient border border-amber-300/40 dark:border-amber-500/30 flex items-center justify-between shadow-[0_4px_20px_rgba(15,23,42,0.03)]">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shrink-0">
             <Flame className="w-6 h-6 fill-white" />
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
-              Streak Status
+            <span className="text-[10px] font-black uppercase tracking-[0.05em] text-orange-600 dark:text-amber-400 block">
+              STREAK STATUS
             </span>
-            <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white leading-tight">
+            <h3 className="font-black text-sm sm:text-base text-[#0F172A] dark:text-white leading-tight">
               {streakDays > 0
                 ? `Current Streak: ${streakDays} ${streakDays === 1 ? 'Day' : 'Days'} – On fire! 🔥`
                 : 'Current Streak: Ready to build momentum! 🚀'}
             </h3>
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
               6-day PPL active consistency
             </span>
           </div>
         </div>
 
-        <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono text-xs font-black shrink-0">
+        <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-700 dark:text-orange-300 font-mono text-xs font-black shrink-0">
           {streakDays}d
         </span>
       </div>

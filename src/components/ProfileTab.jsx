@@ -93,31 +93,37 @@ export default function ProfileTab({
 
   return (
     <div className="space-y-4 pb-32 animate-in fade-in duration-200">
-      {/* Top Banner */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <User className="w-5 h-5 text-teal-600 dark:text-[#A3E635]" />
-            Athlete Profile
-          </h2>
+      {/* Signature Hero Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 shadow-xl border border-teal-500/20">
+        <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> Account & Preferences
+            </span>
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <User className="w-6 h-6 text-white" />
+              Athlete Profile
+            </h2>
+            <p className="text-blue-100 text-xs font-medium mt-1">
+              Manage your personal fitness metrics, account details, and workout backups.
+            </p>
+          </div>
           {isGuest && (
             <button
               onClick={onOpenUpgradeAuth}
-              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-teal-500 to-blue-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+              className="hero-pill-badge hover:bg-white/30 text-white border border-white/25 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1 shrink-0 active:scale-95 transition-all cursor-pointer shadow-xs"
             >
-              <Link className="w-3.5 h-3.5" /> Link Account
+              <Link className="w-3.5 h-3.5 text-emerald-300" /> Link Account
             </button>
           )}
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Manage your personal fitness metrics, account details, and workout backups.
-        </p>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
           1. USER CARD (AVATAR, NAME, EMAIL, LOGOUT)
          ───────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#181B20] border border-slate-200/80 dark:border-[#2D333B] rounded-3xl p-5 shadow-xs space-y-4">
+      <div className="repkraft-card rounded-2xl p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             {/* Avatar Photo or Initial */}
@@ -128,7 +134,7 @@ export default function ProfileTab({
                 className="w-14 h-14 rounded-2xl object-cover border-2 border-teal-500 shadow-sm"
               />
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600 dark:from-[#A3E635] dark:to-emerald-400 text-white dark:text-black font-black text-xl flex items-center justify-center shadow-md">
+              <div className="w-14 h-14 rounded-2xl hero-gradient text-white font-black text-xl flex items-center justify-center shadow-md">
                 {(currentUser?.displayName || profile.displayName || 'A').charAt(0).toUpperCase()}
               </div>
             )}

@@ -199,7 +199,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F1115] text-slate-900 dark:text-white flex flex-col font-sans max-w-lg mx-auto shadow-2xl relative border-x border-slate-200/80 dark:border-[#2D333B]/40 transition-colors duration-200">
+    <div className="min-h-screen bg-[#F4F7FA] dark:bg-[#0F1115] text-slate-900 dark:text-white flex flex-col font-sans max-w-lg mx-auto shadow-2xl relative border-x border-slate-200/80 dark:border-[#2D333B]/40 transition-colors duration-200">
       {/* Top Header */}
       <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0F1115]/90 backdrop-blur-md px-4 py-3 border-b border-slate-200/80 dark:border-[#2D333B]/70 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-2.5">
