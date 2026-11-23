@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
 import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
+import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 
 export default function AnatomicalExerciseCard({
   exercise,
@@ -122,15 +123,15 @@ export default function AnatomicalExerciseCard({
           </span>
         </div>
 
-        {/* Bottom-Right 1-Tap Action: "Watch Form Video" & "Add Photo" */}
+        {/* Bottom-Right 1-Tap Action: "Visual Guide / Form" & "Add Photo" */}
         <div className="absolute bottom-2.5 right-3 flex items-center gap-1.5">
           <button
             onClick={() => onOpenFormGuide(exercise)}
-            className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-            title="Watch video tutorial"
+            className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            title="Open Visual Form & Muscle Guide"
           >
-            <PlayCircle className="w-4 h-4 fill-white text-rose-600" />
-            <span>Watch Form</span>
+            <PlayCircle className="w-4 h-4 fill-white text-blue-600" />
+            <span>Visual Form</span>
           </button>
           <button
             onClick={() => setShowMediaInput(!showMediaInput)}
@@ -284,6 +285,11 @@ export default function AnatomicalExerciseCard({
             </p>
           </div>
         </div>
+
+        {/* ─────────────────────────────────────────────────────────────
+            5. SAVED REEL LINKS BOOKMARK BOX (PERSISTED IN LOCALSTORAGE)
+           ───────────────────────────────────────────────────────────── */}
+        <SavedReelBookmarkBox exerciseName={exercise.name} />
       </div>
     </div>
   );
