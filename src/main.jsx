@@ -23,7 +23,7 @@ class ErrorBoundary extends Component {
       return (
         <div style={{ padding: '24px', color: '#fff', background: '#0F1115', minHeight: '100vh', fontFamily: 'sans-serif' }}>
           <h2 style={{ color: '#EF4444', fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>
-            IronPulse Error Detected
+            RepKraft Error Detected
           </h2>
           <p style={{ color: '#94A3B8', fontSize: '14px', marginBottom: '16px' }}>
             {this.state.error?.toString()}

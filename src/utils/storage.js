@@ -1,4 +1,4 @@
-// IronPulse 6-Day Push-Pull-Legs (PPL) Split
+// RepKraft 6-Day Push-Pull-Legs (PPL) Split
 // Monday: Push (Chest, Shoulders, Triceps)
 // Tuesday: Pull (Back, Biceps, Forearms)
 // Wednesday: Legs (Quads, Hamstrings, Glutes, Calves)

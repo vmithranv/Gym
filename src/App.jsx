@@ -11,17 +11,19 @@ import {
 } from './utils/storage';
 
 import BottomNav from './components/BottomNav';
+import HomeDashboardTab from './components/HomeDashboardTab';
 import WorkoutTab from './components/WorkoutTab';
 import RoutinesTab from './components/RoutinesTab';
 import ProgressTab from './components/ProgressTab';
 import NutritionTab from './components/NutritionTab';
-import ExerciseGuideTab from './components/ExerciseGuideTab';
+import ExerciseLibraryTab from './components/ExerciseLibraryTab';
 import CardioTab from './components/CardioTab';
 import ExerciseFormModal from './components/ExerciseFormModal';
+import FloatingAICoach from './components/FloatingAICoach';
 import { Dumbbell, Sun, Moon, Sparkles } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('workout');
+  const [activeTab, setActiveTab] = useState('home');
 
   // Theme Mode: 'light' or 'dark' (Default to colorful vibrant light mode)
   const [theme, setTheme] = useState(() => {
@@ -174,15 +176,15 @@ export default function App() {
       {/* Top Header */}
       <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0F1115]/90 backdrop-blur-md px-4 py-3 border-b border-slate-200/80 dark:border-[#2D333B]/70 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 dark:from-[#A3E635] dark:to-lime-500 flex items-center justify-center text-white dark:text-black font-black shadow-md shadow-blue-500/20 dark:shadow-[0_0_15px_rgba(163,230,53,0.35)]">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-teal-500 via-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-emerald-400 flex items-center justify-center text-white dark:text-black font-black shadow-md shadow-blue-500/20 dark:shadow-[0_0_15px_rgba(163,230,53,0.35)]">
             <Dumbbell className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-wider uppercase text-slate-900 dark:text-white flex items-center gap-1.5 leading-none">
-              IRON<span className="text-blue-600 dark:text-[#A3E635]">PULSE</span>
+            <h1 className="text-lg font-black tracking-wider uppercase text-slate-900 dark:text-white flex items-center gap-1 leading-none">
+              REP<span className="text-teal-600 dark:text-[#A3E635]">KRAFT</span>
             </h1>
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase">
-              Pro Gym Companion
+              Master Your Routine
             </span>
           </div>
         </div>
@@ -212,6 +214,19 @@ export default function App() {
 
       {/* Main Screen Content */}
       <main className="flex-1 px-4 py-4 overflow-y-auto">
+        {activeTab === 'home' && (
+          <HomeDashboardTab
+            workoutHistory={workoutHistory}
+            records={records}
+            weightHistory={weightHistory}
+            onAddBodyWeight={handleAddBodyWeight}
+            onNavigateToTab={setActiveTab}
+            todayRoutine={routines.find((r) => r.dayOfWeek === new Date().getDay()) || routines[0]}
+            todayDayName={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()]}
+            isRestDay={new Date().getDay() === 0}
+          />
+        )}
+
         {activeTab === 'workout' && (
           <WorkoutTab
             activeSession={activeSession}
@@ -224,15 +239,14 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'cardio' && (
-          <CardioTab />
-        )}
-
-        {activeTab === 'guide' && (
-          <ExerciseGuideTab
-            routines={routines}
+        {activeTab === 'exercises' && (
+          <ExerciseLibraryTab
             onOpenFormGuide={setSelectedGuideExercise}
           />
+        )}
+
+        {activeTab === 'cardio' && (
+          <CardioTab />
         )}
 
         {activeTab === 'routines' && (
@@ -244,7 +258,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'progress' && (
+        {activeTab === 'stats' && (
           <ProgressTab
             workoutHistory={workoutHistory}
             records={records}
@@ -262,6 +276,9 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Floating AI Coach Assistant Drawer */}
+      <FloatingAICoach />
 
       {/* Exercise Form Demonstration Modal */}
       {selectedGuideExercise && (

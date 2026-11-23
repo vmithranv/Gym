@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'ironpulse-icon.svg'],
       manifest: {
-        name: 'IronPulse Gym Tracker',
-        short_name: 'IronPulse',
-        description: 'Modern offline-first PWA for gym lifters',
+        name: 'RepKraft Gym Tracker',
+        short_name: 'RepKraft',
+        description: 'Elite gym workout tracker and fitness dashboard with 6-day PPL schedule and interval timers',
         theme_color: '#0F1115',
         background_color: '#0F1115',
         display: 'standalone',

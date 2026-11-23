@@ -79,9 +79,15 @@ export default function WorkoutTab({
 
   // Detect current day's routine
   const todayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
+  const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex);
+
+  const selectedDayName = DAYS_NAMES[selectedDayIndex];
+  const activeSelectedRoutine = routines.find((r) => r.dayOfWeek === selectedDayIndex) || routines[0];
+  const isSelectedRestDay = activeSelectedRoutine?.category === 'Rest' || activeSelectedRoutine?.isRest;
+
   const todayDayName = DAYS_NAMES[todayIndex];
   const todayRoutine = routines.find((r) => r.dayOfWeek === todayIndex) || routines[0];
-  const isRestDay = todayRoutine?.category === 'Rest' || todayRoutine?.isRest;
+  const isRestDay = isSelectedRestDay;
 
   const formatElapsed = (sec) => {
     const mins = Math.floor(sec / 60);
@@ -313,33 +319,99 @@ export default function WorkoutTab({
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          SECTION 1 (TOP): TODAY'S SCHEDULED WORKOUT CARD
-          Automatically detects Monday-Sunday and shows full routine
+          READY TO TRAIN? & 7-DAY SELECTOR BAR (MON-SUN)
          ───────────────────────────────────────────────────────────── */}
-      {!isRestDay ? (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-[#A3E635] block">
+              6-Day PPL Program
+            </span>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">
+              Ready to Train?
+            </h2>
+          </div>
+          <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#22262E] px-2.5 py-1 rounded-full">
+            Today: {todayDayName}
+          </span>
+        </div>
+
+        {/* Horizontal 7-Day Pill Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {[
+            { dayIndex: 1, label: 'Mon', full: 'Monday' },
+            { dayIndex: 2, label: 'Tue', full: 'Tuesday' },
+            { dayIndex: 3, label: 'Wed', full: 'Wednesday' },
+            { dayIndex: 4, label: 'Thu', full: 'Thursday' },
+            { dayIndex: 5, label: 'Fri', full: 'Friday' },
+            { dayIndex: 6, label: 'Sat', full: 'Saturday' },
+            { dayIndex: 0, label: 'Sun', full: 'Sunday' }
+          ].map((d) => {
+            const isToday = d.dayIndex === todayIndex;
+            const isSelected = d.dayIndex === selectedDayIndex;
+            const dayRoutine = routines.find((r) => r.dayOfWeek === d.dayIndex);
+            const exCount = dayRoutine?.exercises?.length || 0;
+            const isDayRest = dayRoutine?.isRest || dayRoutine?.category === 'Rest';
+
+            return (
+              <button
+                key={d.dayIndex}
+                onClick={() => setSelectedDayIndex(d.dayIndex)}
+                className={`flex-1 min-w-[46px] py-2 px-1 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${
+                  isSelected
+                    ? 'bg-blue-600 dark:bg-[#A3E635] text-white dark:text-black shadow-md shadow-blue-500/20'
+                    : 'bg-white dark:bg-[#181B20] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-[#2D333B] hover:border-slate-300'
+                }`}
+              >
+                {isToday && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute top-1.5 right-1.5 animate-ping" />
+                )}
+                <span className="text-[11px] font-black uppercase tracking-wider leading-none">
+                  {d.label}
+                </span>
+                <span className={`text-[9px] font-mono font-bold mt-1 px-1.5 py-0.2 rounded-full ${
+                  isSelected
+                    ? 'bg-white/20 dark:bg-black/20 text-white dark:text-black'
+                    : isDayRest
+                    ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+                    : 'bg-slate-100 dark:bg-[#22262E] text-slate-500 dark:text-slate-400'
+                }`}>
+                  {isDayRest ? 'Rest' : `${exCount}ex`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION 1 (TOP): SELECTED DAY'S WORKOUT CARD
+          Previews the tapped day's routine, with full CTA
+         ───────────────────────────────────────────────────────────── */}
+      {!isSelectedRestDay ? (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 dark:from-[#181B20] dark:via-[#1A1E24] dark:to-[#0F1115] text-white p-5 sm:p-6 shadow-xl border border-blue-500/20 dark:border-[#2D333B]">
           <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 dark:bg-[#A3E635]/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Today Header Tag */}
           <div className="flex items-center justify-between mb-2">
             <span className="px-3 py-1 rounded-full bg-white/20 dark:bg-[#A3E635]/20 text-white dark:text-[#A3E635] text-xs font-black tracking-wider uppercase flex items-center gap-1.5 backdrop-blur-xs">
-              <Calendar className="w-3.5 h-3.5" /> {todayDayName}'s Program
+              <Calendar className="w-3.5 h-3.5" /> {selectedDayName}'s Program {selectedDayIndex === todayIndex && ' (Today)'}
             </span>
             <span className="text-xs font-bold uppercase tracking-wider text-blue-100 dark:text-slate-400">
-              {todayRoutine.category} (2 Sets Focus)
+              {activeSelectedRoutine.category} (2 Sets Focus)
             </span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            {todayRoutine.name}
+            {activeSelectedRoutine.name}
           </h2>
           <p className="text-blue-100 dark:text-slate-400 text-xs mt-1">
-            {todayRoutine.description}
+            {activeSelectedRoutine.description}
           </p>
 
           {/* Full Exercise List for Today with Rest Timing Cues */}
           <div className="mt-4 pt-3 border-t border-white/15 dark:border-[#2D333B] space-y-2">
-            {(todayRoutine.exercises || []).map((ex, idx) => {
+            {(activeSelectedRoutine.exercises || []).map((ex, idx) => {
               const muscle = ex.muscleGroup || getExerciseMuscleGroup(ex.name);
               const muscleStyle = MUSCLE_GROUP_CONFIG[muscle] || MUSCLE_GROUP_CONFIG.Other;
 
@@ -381,11 +453,28 @@ export default function WorkoutTab({
           {!activeSession && (
             <div className="mt-5 flex flex-col sm:flex-row gap-2.5">
               <button
-                onClick={startTodayRoutine}
+                onClick={() => {
+                  const newSession = {
+                    id: `session-${Date.now()}`,
+                    routineName: activeSelectedRoutine.name,
+                    startTime: new Date().toISOString(),
+                    exercises: activeSelectedRoutine.exercises.map((ex) => ({
+                      ...ex,
+                      sets: Array.from({ length: ex.targetSets || 2 }, (_, i) => ({
+                        setNumber: i + 1,
+                        weight: records[ex.name]?.weight || 20,
+                        reps: records[ex.name]?.reps || ex.defaultReps || 10,
+                        completed: false,
+                        isPr: false
+                      }))
+                    }))
+                  };
+                  setActiveSession(newSession);
+                }}
                 className="flex-1 py-4 px-6 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 dark:bg-[#A3E635] dark:text-black dark:hover:bg-lime-400 font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-lg active:scale-98 transition-all cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-current" />
-                <span>Start {todayDayName}'s Workout ({todayRoutine.category})</span>
+                <span>Start {selectedDayName}'s Workout ({activeSelectedRoutine.category})</span>
               </button>
               <button
                 onClick={startEmptySession}
@@ -397,23 +486,23 @@ export default function WorkoutTab({
           )}
         </div>
       ) : (
-        /* REST & RECOVERY CARD (Tue, Thu, Sun) */
+        /* REST & RECOVERY CARD */
         <div className="rounded-3xl bg-gradient-to-br from-teal-500 via-emerald-600 to-cyan-700 text-white p-5 sm:p-6 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black tracking-wider uppercase flex items-center gap-1.5">
-              <HeartPulse className="w-3.5 h-3.5" /> {todayDayName} Rest & Recovery Day
+              <HeartPulse className="w-3.5 h-3.5" /> {selectedDayName} Rest & Recovery Day
             </span>
             <span className="text-xs font-bold uppercase text-teal-100">Muscle Repair</span>
           </div>
           <h2 className="text-xl font-black text-white">Muscles Rebuild on Rest Days</h2>
           <p className="text-teal-100 text-xs mt-1.5 leading-relaxed">
-            {todayRoutine.description}
+            {activeSelectedRoutine.description}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
             <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">💧 3-4L Water</span>
-            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🚶 20 min light walk</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🚶 25-30 min brisk walk</span>
             <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">🍗 Hit 140g protein</span>
-            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">😴 8:30 PM bedtime</span>
+            <span className="px-2.5 py-1 rounded-xl bg-white/15 font-semibold">😴 8–10 hrs sleep</span>
           </div>
           {!activeSession && (
             <div className="mt-4">
