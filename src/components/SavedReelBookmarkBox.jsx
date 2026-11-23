@@ -58,7 +58,7 @@ export default function SavedReelBookmarkBox({ exerciseName }) {
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-1.5 text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider hover:text-blue-600 dark:hover:text-[#A3E635] transition-colors cursor-pointer"
         >
-          <Instagram className="w-3.5 h-3.5 text-pink-500" />
+          <Video className="w-3.5 h-3.5 text-pink-500" />
           <span>Saved Reel Links</span>
           <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-[#2D333B] text-slate-700 dark:text-slate-300 ml-1">
             {exerciseLinks.length}
