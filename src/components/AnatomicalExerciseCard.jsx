@@ -4,18 +4,17 @@ import {
   Circle,
   PlayCircle,
   Upload,
-  Link,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-  Info,
+  AlertTriangle,
   Timer,
   Layers,
+  Sparkles,
   Image,
-  Award
+  ExternalLink,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import AnatomicalMuscleVisual from './AnatomicalMuscleVisual';
-import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup, EXERCISE_GUIDES } from '../utils/exerciseData';
+import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
+import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
 
 export default function AnatomicalExerciseCard({
   exercise,
@@ -25,19 +24,25 @@ export default function AnatomicalExerciseCard({
   customMediaUrl,
   onSaveCustomMedia
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [showMediaInput, setShowMediaInput] = useState(false);
   const [mediaUrlInput, setMediaUrlInput] = useState('');
+  const [imgError, setImgError] = useState(false);
 
   const muscle = exercise.muscleGroup || getExerciseMuscleGroup(exercise.name);
   const muscleStyle = MUSCLE_GROUP_CONFIG[muscle] || MUSCLE_GROUP_CONFIG.Other;
-  const guide = EXERCISE_GUIDES[exercise.name];
 
-  const tips = guide?.tips || [
-    'Control the lowering eccentric phase for 2-3 seconds for maximum muscle fiber recruitment.',
-    'Keep your core tightly braced throughout and avoid relying on body momentum.',
-    'Exhale as you press or pull through the sticking point.'
-  ];
+  // Retrieve beginner-friendly instructions and verified image
+  const beginnerGuide = BEGINNER_EXERCISE_GUIDES[exercise.name] || {
+    equipment: 'Gym Equipment / Dumbbell',
+    targetMuscle: muscle,
+    youtubeId: '',
+    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    fallbackImageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    step1: 'Position yourself securely on the machine or bench. Check hand grip and foot placement.',
+    step2: 'Perform the movement smoothly while exhaling through the lift.',
+    step3: 'Lower weights under complete 2-3 second control back to starting position.',
+    commonMistake: 'Using excessive weight and jerky body momentum.'
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -62,6 +67,8 @@ export default function AnatomicalExerciseCard({
     }
   };
 
+  const displayImage = customMediaUrl || (imgError ? beginnerGuide.fallbackImageUrl : beginnerGuide.imageUrl);
+
   return (
     <div
       className={`rounded-3xl border transition-all duration-300 overflow-hidden shadow-xs hover:shadow-md ${
@@ -70,36 +77,33 @@ export default function AnatomicalExerciseCard({
           : 'bg-white dark:bg-[#181B20] border-slate-200/80 dark:border-[#2D333B]'
       }`}
     >
-      {/* Top Media Header: Custom uploaded media OR 3D Anatomical Muscle Visual */}
-      <div className="relative group">
-        {customMediaUrl ? (
-          <div className="w-full h-44 bg-slate-950 flex items-center justify-center overflow-hidden">
-            <img
-              src={customMediaUrl}
-              alt={exercise.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : (
-          <AnatomicalMuscleVisual
-            exerciseKey={exercise.name}
-            targetMuscle={muscle}
-            className="w-full h-44"
-          />
-        )}
+      {/* ─────────────────────────────────────────────────────────────
+          1. REAL EXERCISE DEMONSTRATION VISUAL & OVERLAY BADGES
+         ───────────────────────────────────────────────────────────── */}
+      <div className="relative w-full h-48 bg-slate-950 overflow-hidden group">
+        <img
+          src={displayImage}
+          alt={exercise.name}
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+        />
 
-        {/* Clear Overlay Badges: Target Sets × Reps & Rest Time */}
+        {/* Gradient vignette for high-contrast badge readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/60 pointer-events-none" />
+
+        {/* Top-Left: Target Sets × Reps & Rest Badges */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 pointer-events-none">
-          <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-black/75 text-white backdrop-blur-md border border-white/20 shadow-md">
+          <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-md">
             {exercise.targetSets || 2} Sets × {exercise.defaultReps || 10} Reps
           </span>
-          <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-black/75 text-emerald-300 dark:text-[#A3E635] backdrop-blur-md border border-white/20 shadow-md flex items-center gap-1">
+          <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-black/80 text-emerald-300 dark:text-[#A3E635] backdrop-blur-md border border-white/20 shadow-md flex items-center gap-1">
             <Timer className="w-3.5 h-3.5" />
             {exercise.restSeconds || 90}s Rest
           </span>
         </div>
 
-        {/* Top-Right Muscle Group Tag & Check status */}
+        {/* Top-Right: Target Muscle & Equipment Badge */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
           <span
             className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-md backdrop-blur-md ${muscleStyle.badgeBg} ${muscleStyle.badgeText} ${muscleStyle.badgeBorder}`}
@@ -108,41 +112,54 @@ export default function AnatomicalExerciseCard({
           </span>
         </div>
 
-        {/* Bottom Bar overlay inside visual */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+        {/* Bottom Banner Over Visual: Equipment Name */}
+        <div className="absolute bottom-3 left-3 text-white pointer-events-none">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
+            Equipment / Setup:
+          </span>
+          <span className="text-xs font-extrabold text-white">
+            {beginnerGuide.equipment}
+          </span>
+        </div>
+
+        {/* Bottom-Right 1-Tap Action: "Watch Form Video" & "Add Photo" */}
+        <div className="absolute bottom-2.5 right-3 flex items-center gap-1.5">
           <button
             onClick={() => onOpenFormGuide(exercise)}
-            className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-black/75 hover:bg-black text-white border border-white/20 transition-all flex items-center gap-1 backdrop-blur-md cursor-pointer"
+            className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
             title="Watch video tutorial"
           >
-            <PlayCircle className="w-3.5 h-3.5 text-rose-500" /> Watch Video
+            <PlayCircle className="w-4 h-4 fill-white text-rose-600" />
+            <span>Watch Form</span>
           </button>
           <button
             onClick={() => setShowMediaInput(!showMediaInput)}
-            className="p-1 rounded-xl bg-black/75 hover:bg-black text-white border border-white/20 transition-all backdrop-blur-md cursor-pointer"
-            title="Upload custom GIF/screenshot or URL"
+            className="p-1.5 rounded-xl bg-black/75 hover:bg-black text-white border border-white/20 transition-all backdrop-blur-md cursor-pointer"
+            title="Add custom photo or reel link"
           >
-            <Image className="w-3.5 h-3.5" />
+            <Image className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Card Info and Action Body */}
-      <div className="p-4 space-y-3">
+      {/* ─────────────────────────────────────────────────────────────
+          2. EXERCISE TITLE & "MARK DONE ✅" TOGGLE BUTTON
+         ───────────────────────────────────────────────────────────── */}
+      <div className="p-4 space-y-3.5">
         <div className="flex items-start justify-between gap-2">
           <div>
             <h3 className="font-black text-base text-slate-900 dark:text-white leading-tight">
               {exercise.name}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-              Target: <strong className="text-slate-800 dark:text-slate-200">{muscle}</strong> • 2 heavy/strict work sets
-            </p>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 block">
+              Targets: <strong className="text-blue-600 dark:text-[#A3E635]">{beginnerGuide.targetMuscle}</strong>
+            </span>
           </div>
 
           {/* Mark Exercise Done (✅) Button */}
           <button
             onClick={() => onToggleComplete(exercise.name)}
-            className={`px-3 py-1.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm ${
+            className={`px-3 py-2 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm ${
               isCompleted
                 ? 'bg-emerald-500 text-white shadow-emerald-500/30 ring-2 ring-emerald-400'
                 : 'bg-slate-100 hover:bg-slate-200 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2D333B]'
@@ -160,16 +177,16 @@ export default function AnatomicalExerciseCard({
           </button>
         </div>
 
-        {/* Custom Image/GIF Uploader Input Drawer */}
+        {/* Custom Image/GIF/Reel Link Drawer */}
         {showMediaInput && (
           <div className="p-3 bg-slate-50 dark:bg-[#22262E] rounded-2xl border border-slate-200 dark:border-[#2D333B] space-y-2 text-xs animate-in fade-in">
             <span className="font-bold text-slate-800 dark:text-slate-200 block">
-              Set Custom Exercise Image or GIF:
+              Add My Own Photo or Instagram Reel / GIF URL:
             </span>
             <form onSubmit={handleUrlSubmit} className="flex gap-2">
               <input
                 type="url"
-                placeholder="Paste image/GIF URL..."
+                placeholder="Paste image/GIF/video link..."
                 value={mediaUrlInput}
                 onChange={(e) => setMediaUrlInput(e.target.value)}
                 className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono"
@@ -199,31 +216,73 @@ export default function AnatomicalExerciseCard({
           </div>
         )}
 
-        {/* Expandable Form Cues Accordion */}
-        <div className="pt-1">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-between text-left text-xs font-extrabold text-blue-600 dark:text-sky-400 py-1 hover:underline cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              {expanded ? 'Hide Posture & Execution Cues' : 'View 3 Pro Posture & Execution Cues'}
-            </span>
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+        {/* ─────────────────────────────────────────────────────────────
+            3. SIMPLE 3-STEP BEGINNER INSTRUCTIONS ("HOW TO DO IT")
+           ───────────────────────────────────────────────────────────── */}
+        <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-[#22262E]">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+            How to Do It (Simple 3-Step Guide)
+          </span>
 
-          {expanded && (
-            <div className="mt-2 p-3 bg-slate-50 dark:bg-[#22262E]/70 rounded-2xl border border-slate-100 dark:border-transparent space-y-2 animate-in fade-in">
-              {tips.map((tip, tIdx) => (
-                <div key={tIdx} className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                  <span className="w-4 h-4 rounded-full bg-blue-500/10 text-blue-600 dark:text-sky-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
-                    {tIdx + 1}
-                  </span>
-                  <p className="font-medium">{tip}</p>
-                </div>
-              ))}
+          {/* Step 1: Setup & Grip */}
+          <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 text-xs">
+            <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+              1
+            </span>
+            <div>
+              <strong className="text-slate-900 dark:text-white block font-bold text-[11px]">
+                Setup & Grip:
+              </strong>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] mt-0.5">
+                {beginnerGuide.step1}
+              </p>
             </div>
-          )}
+          </div>
+
+          {/* Step 2: The Lift & Breathing */}
+          <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 text-xs">
+            <span className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+              2
+            </span>
+            <div>
+              <strong className="text-slate-900 dark:text-white block font-bold text-[11px]">
+                The Lift & Breathing:
+              </strong>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] mt-0.5">
+                {beginnerGuide.step2}
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3: Control Return */}
+          <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 text-xs">
+            <span className="w-5 h-5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+              3
+            </span>
+            <div>
+              <strong className="text-slate-900 dark:text-white block font-bold text-[11px]">
+                Control Return:
+              </strong>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] mt-0.5">
+                {beginnerGuide.step3}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ─────────────────────────────────────────────────────────────
+            4. COMMON MISTAKE TO AVOID (SOFT RED/AMBER WARNING TAG)
+           ───────────────────────────────────────────────────────────── */}
+        <div className="p-3 bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/25 rounded-2xl flex items-start gap-2 text-xs">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-amber-800 dark:text-amber-300 font-bold block text-[11px]">
+              Common Mistake to Avoid:
+            </strong>
+            <p className="text-amber-700 dark:text-amber-200/90 leading-relaxed text-[11px] mt-0.5 font-medium">
+              {beginnerGuide.commonMistake}
+            </p>
+          </div>
         </div>
       </div>
     </div>
