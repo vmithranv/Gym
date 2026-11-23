@@ -67,7 +67,7 @@ const CARDIO_PLANS = [
   {
     id: 'plan-incline-walk',
     title: 'Incline Treadmill / Brisk Outdoor Walk',
-    bestFor: 'Best for Rest Days (Tue / Thu / Sat)',
+    bestFor: 'Best for Sunday Rest Day & Active Evenings',
     tag: 'Active Recovery',
     tagColor: 'bg-emerald-500/15 text-emerald-600 dark:text-[#A3E635] border-emerald-500/30',
     totalDurationMinutes: 25,
@@ -308,10 +308,10 @@ export default function CardioTab() {
         <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div>
           <strong className="text-amber-800 dark:text-amber-300 font-bold block text-xs">
-            Smart PPL Reminder:
+            Smart 6-Day PPL Reminder:
           </strong>
           <p className="text-amber-700 dark:text-amber-200/90 leading-relaxed text-[11px] mt-0.5 font-medium">
-            Keep intense cardio away from <strong>Friday (Leg Day)</strong> so your quads and hamstrings stay 100% fresh for heavy squats and leg press. Prioritize incline walking on Tuesday & Thursday.
+            Avoid intense cycling or stair climbing on <strong>Wednesday and Saturday (Leg Days)</strong>. Do 10-min light walks after Push/Pull days (Mon, Tue, Thu, Fri) and longer 25–30 min brisk walks on <strong>Sunday Rest Day</strong>.
           </p>
         </div>
       </div>

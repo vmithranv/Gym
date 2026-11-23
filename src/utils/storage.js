@@ -1,11 +1,11 @@
-// IronPulse Personalized Weekly Split & Exercise Configurations
+// IronPulse 6-Day Push-Pull-Legs (PPL) Split
 // Monday: Push (Chest, Shoulders, Triceps)
-// Tuesday: Rest & Recovery (Stretching, light walk)
-// Wednesday: Pull (Back, Biceps)
-// Thursday: Rest & Recovery (Active rest, hydration)
-// Friday: Legs (Quads, Hamstrings, Glutes, Calves)
-// Saturday: Light Full-Body / Active Activity
-// Sunday: Full Rest Day
+// Tuesday: Pull (Back, Biceps, Forearms)
+// Wednesday: Legs (Quads, Hamstrings, Glutes, Calves)
+// Thursday: Push (Chest, Shoulders, Triceps)
+// Friday: Pull (Back, Biceps, Forearms)
+// Saturday: Legs (Quads, Hamstrings, Glutes, Calves)
+// Sunday: Full Rest & Active Recovery Day
 
 export const DEFAULT_ROUTINES = [
   {
@@ -13,7 +13,7 @@ export const DEFAULT_ROUTINES = [
     name: 'Monday: Push Day (Chest, Shoulders & Triceps)',
     dayOfWeek: 1, // Mon
     category: 'Push',
-    description: '2 heavy/moderate sets per exercise for maximum mechanical tension and recovery.',
+    description: '2 heavy/moderate sets per exercise for maximum mechanical tension and upper-body pressing strength.',
     exercises: [
       { id: 'ex-chest-press', name: 'Barbell Flat Bench Press', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
       { id: 'ex-incline-db', name: 'Incline Dumbbell Press', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
@@ -23,44 +23,27 @@ export const DEFAULT_ROUTINES = [
     ]
   },
   {
-    id: 'tuesday-rest',
-    name: 'Tuesday: Rest & Recovery',
+    id: 'tuesday-pull',
+    name: 'Tuesday: Pull Day (Back, Biceps & Forearms)',
     dayOfWeek: 2, // Tue
-    category: 'Rest',
-    isRest: true,
-    description: 'Light walking, 10-minute hip and shoulder mobility, and high protein hydration.',
-    exercises: []
-  },
-  {
-    id: 'wednesday-pull',
-    name: 'Wednesday: Pull Day (Back & Biceps)',
-    dayOfWeek: 3, // Wed
     category: 'Pull',
-    description: 'Target lats, upper back thickness, and bicep peaks with strict 2-set progressive overload.',
+    description: 'Target lats, upper back thickness, and bicep/forearm peaks with strict 2-set progressive overload.',
     exercises: [
       { id: 'ex-lat-pulldown', name: 'Wide-Grip Lat Pulldown', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
       { id: 'ex-seated-cable-row', name: 'Close-Grip Seated Cable Row', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
       { id: 'ex-chest-supported-row', name: 'Chest-Supported T-Bar Row', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
       { id: 'ex-face-pulls', name: 'Cable Face Pulls', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 14, restSeconds: 75, isCompound: false },
       { id: 'ex-biceps-curl', name: 'Incline Dumbbell Bicep Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
-      { id: 'ex-hammer-curl', name: 'Standing Dumbbell Hammer Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false }
+      { id: 'ex-hammer-curl', name: 'Standing Dumbbell Hammer Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
+      { id: 'ex-reverse-curl', name: 'Reverse-Grip Barbell Curls', muscleGroup: 'Arms', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false }
     ]
   },
   {
-    id: 'thursday-rest',
-    name: 'Thursday: Rest & Active Hydration',
-    dayOfWeek: 4, // Thu
-    category: 'Rest',
-    isRest: true,
-    description: 'Active rest day. Drink 3-4L water and prioritize 8-9 hours sleep tonight.',
-    exercises: []
-  },
-  {
-    id: 'friday-legs',
-    name: 'Friday: Legs Day (Quads, Hamstrings, Glutes & Calves)',
-    dayOfWeek: 5, // Fri
+    id: 'wednesday-legs',
+    name: 'Wednesday: Leg Day (Quads, Hamstrings, Glutes & Calves)',
+    dayOfWeek: 3, // Wed
     category: 'Legs',
-    description: 'Build powerful quads, hamstrings, and calves. Extended rest intervals for leg compounds.',
+    description: 'Build powerful quads, hamstrings, and calves with extended rest intervals on compound machines.',
     exercises: [
       { id: 'ex-leg-press', name: 'Incline 45° Leg Press', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 120, isCompound: true },
       { id: 'ex-goblet-squat', name: 'Goblet Squats or Hack Squat', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
@@ -70,24 +53,56 @@ export const DEFAULT_ROUTINES = [
     ]
   },
   {
-    id: 'saturday-active',
-    name: 'Saturday: Light Full-Body / Active Movement',
-    dayOfWeek: 6, // Sat
-    category: 'Full Body',
-    description: 'Optional light mobility, brisk walking, bodyweight push-ups, or core stability.',
+    id: 'thursday-push',
+    name: 'Thursday: Push Day (Chest, Shoulders & Triceps)',
+    dayOfWeek: 4, // Thu
+    category: 'Push',
+    description: 'Second push session of the week. Progress weight or reps from Monday with high mechanical tension.',
     exercises: [
-      { id: 'ex-dips', name: 'Weighted Chest Dips', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
-      { id: 'ex-pullup', name: 'Pull-Ups / Weighted Pull-Ups', muscleGroup: 'Back', targetSets: 2, defaultReps: 8, restSeconds: 90, isCompound: true },
-      { id: 'ex-rdl', name: 'Romanian Deadlift (RDL)', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true }
+      { id: 'ex-chest-press-2', name: 'Barbell Flat Bench Press', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-incline-db-2', name: 'Incline Dumbbell Press', muscleGroup: 'Chest', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
+      { id: 'ex-shoulder-press-2', name: 'Standing Overhead Barbell Press', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-lateral-raise-2', name: 'Dumbbell Lateral Raise', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false },
+      { id: 'ex-tricep-pushdown-2', name: 'Cable Tricep Rope Pushdown', muscleGroup: 'Arms', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false }
+    ]
+  },
+  {
+    id: 'friday-pull',
+    name: 'Friday: Pull Day (Back, Biceps & Forearms)',
+    dayOfWeek: 5, // Fri
+    category: 'Pull',
+    description: 'Second pull session of the week. Build back width, mid-trap density, and arm thickness.',
+    exercises: [
+      { id: 'ex-lat-pulldown-2', name: 'Wide-Grip Lat Pulldown', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-seated-cable-row-2', name: 'Close-Grip Seated Cable Row', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-chest-supported-row-2', name: 'Chest-Supported T-Bar Row', muscleGroup: 'Back', targetSets: 2, defaultReps: 10, restSeconds: 90, isCompound: true },
+      { id: 'ex-face-pulls-2', name: 'Cable Face Pulls', muscleGroup: 'Shoulders', targetSets: 2, defaultReps: 14, restSeconds: 75, isCompound: false },
+      { id: 'ex-biceps-curl-2', name: 'Incline Dumbbell Bicep Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
+      { id: 'ex-hammer-curl-2', name: 'Standing Dumbbell Hammer Curl', muscleGroup: 'Arms', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
+      { id: 'ex-reverse-curl-2', name: 'Reverse-Grip Barbell Curls', muscleGroup: 'Arms', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false }
+    ]
+  },
+  {
+    id: 'saturday-legs',
+    name: 'Saturday: Leg Day (Quads, Hamstrings, Glutes & Calves)',
+    dayOfWeek: 6, // Sat
+    category: 'Legs',
+    description: 'Second leg session of the week. Full lower-body hypertrophy stimulation before Sunday rest.',
+    exercises: [
+      { id: 'ex-leg-press-2', name: 'Incline 45° Leg Press', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 120, isCompound: true },
+      { id: 'ex-goblet-squat-2', name: 'Goblet Squats or Hack Squat', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 105, isCompound: true },
+      { id: 'ex-seated-leg-curl-2', name: 'Seated Hamstring Leg Curl', muscleGroup: 'Legs', targetSets: 2, defaultReps: 10, restSeconds: 75, isCompound: false },
+      { id: 'ex-leg-extension-2', name: 'Leg Extension Machine', muscleGroup: 'Legs', targetSets: 2, defaultReps: 12, restSeconds: 75, isCompound: false },
+      { id: 'ex-calf-raise-2', name: 'Standing Machine Calf Raise', muscleGroup: 'Legs', targetSets: 2, defaultReps: 15, restSeconds: 75, isCompound: false }
     ]
   },
   {
     id: 'sunday-rest',
-    name: 'Sunday: Full Rest & Recovery',
+    name: 'Sunday: Full Rest & Recovery Day',
     dayOfWeek: 0, // Sun
     category: 'Rest',
     isRest: true,
-    description: 'Full recovery day. High protein meals, relaxing with family, and charging up for Monday Push.',
+    description: 'Complete systemic recovery day. Prioritize 8–10 hours of sleep, 3–4L hydration, gentle stretching, and high-protein nutrition.',
     exercises: []
   }
 ];

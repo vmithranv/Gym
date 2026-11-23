@@ -30,17 +30,17 @@ export default function ExerciseGuideTab({ routines = [], onOpenFormGuide }) {
   );
 
   const filterOptions = [
-    { id: 'All', label: 'All Exercises', desc: 'Full PPL Routine' },
-    { id: 'push', label: 'Monday: Push', desc: 'Chest, Shoulders & Triceps' },
-    { id: 'pull', label: 'Wednesday: Pull', desc: 'Back & Biceps' },
-    { id: 'legs', label: 'Friday: Legs', desc: 'Quads, Hamstrings & Calves' }
+    { id: 'All', label: 'All Exercises', desc: 'Full 6-Day PPL Routine' },
+    { id: 'push', label: 'Push (Mon & Thu)', desc: 'Chest, Shoulders & Triceps' },
+    { id: 'pull', label: 'Pull (Tue & Fri)', desc: 'Back, Biceps & Forearms' },
+    { id: 'legs', label: 'Legs (Wed & Sat)', desc: 'Quads, Hamstrings & Calves' }
   ];
 
   // Safeguard array access against undefined/null
   const safeRoutines = Array.isArray(routines) && routines.length > 0 ? routines : [];
-  const pushRoutine = safeRoutines.find((r) => r.id === 'monday-push') || safeRoutines[0] || { exercises: [] };
-  const pullRoutine = safeRoutines.find((r) => r.id === 'wednesday-pull') || safeRoutines[2] || { exercises: [] };
-  const legRoutine = safeRoutines.find((r) => r.id === 'friday-legs') || safeRoutines[4] || { exercises: [] };
+  const pushRoutine = safeRoutines.find((r) => r.id === 'monday-push' || r.category === 'Push') || safeRoutines[0] || { exercises: [] };
+  const pullRoutine = safeRoutines.find((r) => r.id === 'tuesday-pull' || r.id === 'wednesday-pull' || r.category === 'Pull') || safeRoutines[1] || { exercises: [] };
+  const legRoutine = safeRoutines.find((r) => r.id === 'wednesday-legs' || r.id === 'friday-legs' || r.category === 'Legs') || safeRoutines[2] || { exercises: [] };
 
   let displayExercises = [];
   if (selectedFilter === 'push') {

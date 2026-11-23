@@ -124,6 +124,17 @@ export const BEGINNER_EXERCISE_GUIDES = {
     step3: 'Squeeze forearm and outer bicep at peak, then lower under complete control.',
     commonMistake: 'Swinging your torso or letting elbows drift forward.'
   },
+  'Reverse-Grip Barbell Curls': {
+    equipment: 'Barbell or EZ-Curl Bar',
+    targetMuscle: 'Forearms & Outer Biceps (Brachioradialis)',
+    youtubeId: 'nRgxYX2Ve9w',
+    imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=80',
+    fallbackImageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=80',
+    step1: 'Hold an EZ-bar or barbell with an overhand (pronated) grip, palms facing downward toward the floor.',
+    step2: 'Keep upper arms tight against your ribcage and curl the bar upward by flexing your forearms and biceps.',
+    step3: 'Pause for 1 count at the top to fully contract the brachioradialis, then lower smoothly over 2-3 seconds.',
+    commonMistake: 'Allowing your wrists to curl backward or using body swinging momentum.'
+  },
   'Incline 45° Leg Press': {
     equipment: '45° Leg Press Machine',
     targetMuscle: 'Quads & Glutes',

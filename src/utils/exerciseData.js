@@ -100,6 +100,15 @@ export const EXERCISE_GUIDES = {
       'Avoid swinging hips or arching back.'
     ]
   },
+  'Reverse-Grip Barbell Curls': {
+    muscleGroup: 'Arms',
+    youtubeId: 'nRgxYX2Ve9w',
+    tips: [
+      'Overhand pronated grip (palms facing floor) with thumbs wrapped or over bar.',
+      'Maximizes engagement of the brachioradialis and wrist extensors.',
+      'Keep elbows pinned at your sides and lower slowly over 2-3 seconds.'
+    ]
+  },
   'Incline 45° Leg Press': {
     muscleGroup: 'Legs',
     youtubeId: 'IZxyjW7MPJQ',

@@ -43,10 +43,17 @@ export default function App() {
   // Selected exercise for form demonstration modal
   const [selectedGuideExercise, setSelectedGuideExercise] = useState(null);
 
-  // Application State backed by localStorage
-  const [routines, setRoutines] = useState(() =>
-    loadFromStorage('routines', DEFAULT_ROUTINES)
-  );
+  // Application State backed by localStorage (versioned routines check so 6-day split updates seamlessly)
+  const ROUTINES_VERSION = 'v2_ppl_6day';
+  const [routines, setRoutines] = useState(() => {
+    const savedVersion = loadFromStorage('routines_version', null);
+    if (savedVersion !== ROUTINES_VERSION) {
+      saveToStorage('routines_version', ROUTINES_VERSION);
+      saveToStorage('routines', DEFAULT_ROUTINES);
+      return DEFAULT_ROUTINES;
+    }
+    return loadFromStorage('routines', DEFAULT_ROUTINES);
+  });
   const [records, setRecords] = useState(() =>
     loadFromStorage('records', INITIAL_PREVIOUS_RECORDS)
   );
