@@ -15,6 +15,7 @@ import WorkoutTab from './components/WorkoutTab';
 import RoutinesTab from './components/RoutinesTab';
 import ProgressTab from './components/ProgressTab';
 import NutritionTab from './components/NutritionTab';
+import ExerciseGuideTab from './components/ExerciseGuideTab';
 import ExerciseFormModal from './components/ExerciseFormModal';
 import { Dumbbell, Sun, Moon, Sparkles } from 'lucide-react';
 
@@ -139,10 +140,11 @@ export default function App() {
       name: ex.name,
       muscleGroup: ex.muscleGroup,
       customVideoUrl: ex.customVideoUrl || '',
-      sets: Array.from({ length: ex.targetSets || 3 }).map((_, sIdx) => ({
+      restSeconds: ex.restSeconds || 90,
+      sets: Array.from({ length: ex.targetSets || 2 }).map((_, sIdx) => ({
         setNumber: sIdx + 1,
-        weight: records[ex.name]?.weight || 60,
-        reps: ex.defaultReps || 8,
+        weight: records[ex.name]?.weight || 50,
+        reps: ex.defaultReps || 10,
         completed: false,
         isPr: false
       }))
@@ -210,6 +212,13 @@ export default function App() {
             records={records}
             onSaveWorkout={handleSaveWorkout}
             onRecordPr={handleRecordPr}
+            onOpenFormGuide={setSelectedGuideExercise}
+          />
+        )}
+
+        {activeTab === 'guide' && (
+          <ExerciseGuideTab
+            routines={routines}
             onOpenFormGuide={setSelectedGuideExercise}
           />
         )}
