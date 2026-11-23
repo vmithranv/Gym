@@ -18,22 +18,27 @@ import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
 import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 
 export default function AnatomicalExerciseCard({
-  exercise,
+  exercise = {},
   isCompleted = false,
-  onToggleComplete,
-  onOpenFormGuide,
+  onToggleComplete = () => {},
+  onOpenFormGuide = () => {},
   customMediaUrl,
-  onSaveCustomMedia
+  onSaveCustomMedia = () => {}
 }) {
   const [showMediaInput, setShowMediaInput] = useState(false);
   const [mediaUrlInput, setMediaUrlInput] = useState('');
   const [imgError, setImgError] = useState(false);
 
-  const muscle = exercise.muscleGroup || getExerciseMuscleGroup(exercise.name);
-  const muscleStyle = MUSCLE_GROUP_CONFIG[muscle] || MUSCLE_GROUP_CONFIG.Other;
+  const exerciseName = exercise?.name || 'Exercise';
+  const muscle = exercise?.muscleGroup || getExerciseMuscleGroup(exerciseName) || 'Full Body';
+  const muscleStyle = MUSCLE_GROUP_CONFIG[muscle] || MUSCLE_GROUP_CONFIG.Other || {
+    badgeBg: 'bg-blue-500/10',
+    badgeText: 'text-blue-500',
+    badgeBorder: 'border-blue-500/30'
+  };
 
   // Retrieve beginner-friendly instructions and verified image
-  const beginnerGuide = BEGINNER_EXERCISE_GUIDES[exercise.name] || {
+  const beginnerGuide = BEGINNER_EXERCISE_GUIDES[exerciseName] || {
     equipment: 'Gym Equipment / Dumbbell',
     targetMuscle: muscle,
     youtubeId: '',

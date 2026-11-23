@@ -14,7 +14,7 @@ import AnatomicalMuscleVisual from './AnatomicalMuscleVisual';
 import AnatomicalExerciseCard from './AnatomicalExerciseCard';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 
-export default function ExerciseGuideTab({ routines, onOpenFormGuide }) {
+export default function ExerciseGuideTab({ routines = [], onOpenFormGuide }) {
   // Filter bar state: 'All', 'push', 'pull', 'legs'
   const [selectedFilter, setSelectedFilter] = useState('All');
 
@@ -36,10 +36,11 @@ export default function ExerciseGuideTab({ routines, onOpenFormGuide }) {
     { id: 'legs', label: 'Friday: Legs', desc: 'Quads, Hamstrings & Calves' }
   ];
 
-  // Map routines into filtered exercise lists
-  const pushRoutine = routines.find((r) => r.id === 'monday-push') || routines[0];
-  const pullRoutine = routines.find((r) => r.id === 'wednesday-pull') || routines[2];
-  const legRoutine = routines.find((r) => r.id === 'friday-legs') || routines[4];
+  // Safeguard array access against undefined/null
+  const safeRoutines = Array.isArray(routines) && routines.length > 0 ? routines : [];
+  const pushRoutine = safeRoutines.find((r) => r.id === 'monday-push') || safeRoutines[0] || { exercises: [] };
+  const pullRoutine = safeRoutines.find((r) => r.id === 'wednesday-pull') || safeRoutines[2] || { exercises: [] };
+  const legRoutine = safeRoutines.find((r) => r.id === 'friday-legs') || safeRoutines[4] || { exercises: [] };
 
   let displayExercises = [];
   if (selectedFilter === 'push') {

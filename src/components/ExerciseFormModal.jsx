@@ -9,12 +9,17 @@ import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 export default function ExerciseFormModal({ exercise, onClose }) {
   if (!exercise) return null;
 
-  const exerciseName = exercise.name || 'Exercise';
-  const muscleGroup = exercise.muscleGroup || getExerciseMuscleGroup(exerciseName);
-  const muscleStyle = MUSCLE_GROUP_CONFIG[muscleGroup] || MUSCLE_GROUP_CONFIG.Other;
+  const exerciseName = typeof exercise === 'string' ? exercise : (exercise?.name || 'Exercise');
+  const muscleGroup = exercise?.muscleGroup || getExerciseMuscleGroup(exerciseName) || 'Full Body';
+  const muscleStyle = MUSCLE_GROUP_CONFIG[muscleGroup] || MUSCLE_GROUP_CONFIG.Other || {
+    badgeBg: 'bg-blue-500/10',
+    badgeText: 'text-blue-500',
+    badgeBorder: 'border-blue-500/30',
+    dotColor: '#3B82F6'
+  };
 
-  const beginner = BEGINNER_EXERCISE_GUIDES[exerciseName];
-  const guide = EXERCISE_GUIDES[exerciseName];
+  const beginner = BEGINNER_EXERCISE_GUIDES[exerciseName] || {};
+  const guide = EXERCISE_GUIDES[exerciseName] || {};
 
   // Specific tempo cue
   const tempoCue = beginner?.tempo || '2s Lower • 1s Squeeze • 2s Push/Pull';
@@ -26,8 +31,14 @@ export default function ExerciseFormModal({ exercise, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col animate-in slide-in-from-bottom duration-300"
+      >
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-[#2D333B] flex items-start justify-between gap-3">
           <div>
