@@ -16,7 +16,7 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
-import { loadFromStorage, saveToStorage } from './storage';
+import { loadFromStorage, saveToStorage, getOrCreateDeviceId } from './storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -436,11 +436,11 @@ export const updateUserDisplayName = async (newName) => {
   return null;
 };
 
-// 6. Continue as Guest Mode
+// 6. Continue as Guest Mode (uses single stable device ID to prevent duplicate guest rows)
 export const loginAsGuest = () => {
-  const existing = getStoredUser();
+  const deviceId = getOrCreateDeviceId();
   const guestUser = {
-    uid: existing?.isGuest ? existing.uid : `guest-${Date.now()}`,
+    uid: deviceId,
     displayName: 'Guest Lifter',
     email: null,
     photoURL: '',

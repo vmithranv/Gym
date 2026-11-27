@@ -197,6 +197,50 @@ export const saveToStorage = (key, data) => {
   }
 };
 
+export const getOrCreateDeviceId = () => {
+  const existing = loadFromStorage('repkraft_device_uid', null);
+  if (existing) return existing;
+  const generated = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  saveToStorage('repkraft_device_uid', generated);
+  return generated;
+};
+
+export const computeWorkoutVolumeKg = (workout) => {
+  if (typeof workout?.totalVolume === 'number' && !Number.isNaN(workout.totalVolume)) {
+    return workout.totalVolume;
+  }
+  return (workout?.exercises || []).reduce((sum, ex) => {
+    const exVol = (ex.sets || []).reduce((sSum, s) => {
+      if (s.completed) return sSum + (Number(s.weight) || 0) * (Number(s.reps) || 0);
+      return sSum;
+    }, 0);
+    return sum + exVol;
+  }, 0);
+};
+
+export const toLocalDateStr = (dateInput = new Date()) => {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return toLocalDateStr(new Date());
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+export const extractWorkoutDateStr = (workout) => {
+  const rawTs = workout?.completedAt || workout?.startedAt || workout?.startTime || workout?.timestamp;
+  if (rawTs) {
+    const parsed = new Date(rawTs);
+    if (!Number.isNaN(parsed.getTime())) {
+      return toLocalDateStr(parsed);
+    }
+  }
+  if (workout?.date && /^\d{4}-\d{2}-\d{2}/.test(String(workout.date))) {
+    return String(workout.date).slice(0, 10);
+  }
+  return toLocalDateStr(new Date());
+};
+
 // Brzycki 1RM formula: Weight × (36 / (37 - Reps))
 export const calculate1RM = (weight, reps) => {
   if (!weight || !reps || reps <= 0) return 0;

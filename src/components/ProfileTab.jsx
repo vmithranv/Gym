@@ -20,6 +20,8 @@ import { getAdminSecurityConfig, isAdminEmailMatch, isAdminUnlocked } from '../u
 
 export default function ProfileTab({
   currentUser,
+  weightHistory = [],
+  onAddBodyWeight,
   onUserUpdated,
   onLogout,
   onOpenUpgradeAuth,
@@ -27,13 +29,19 @@ export default function ProfileTab({
   isDark,
   onToggleTheme
 }) {
+  const latestWeightEntry = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1] : null;
+  const latestWeightVal =
+    typeof latestWeightEntry === 'object' && latestWeightEntry !== null
+      ? latestWeightEntry.weight
+      : latestWeightEntry;
+
   // Fitness Profile state persisted in localStorage
   const [profile, setProfile] = useState(() =>
     loadFromStorage('repkraft_user_profile_data', {
       displayName: currentUser?.displayName || 'Mithran',
       age: '24',
       heightCm: '160',
-      weightKg: '65',
+      weightKg: String(latestWeightVal ?? '65'),
       experience: '1–3 Months (Beginner)',
       wakeUpTime: '5:00 AM',
       gymTime: '6:00 AM',
@@ -42,6 +50,8 @@ export default function ProfileTab({
     })
   );
 
+  const displayedWeightKg = latestWeightVal !== undefined && latestWeightVal !== null ? String(latestWeightVal) : profile.weightKg;
+
   const [isEditing, setIsEditing] = useState(false);
   const [saveNotice, setSaveNotice] = useState(false);
 
@@ -49,6 +59,11 @@ export default function ProfileTab({
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     saveToStorage('repkraft_user_profile_data', profile);
+
+    const parsedWeight = parseFloat(profile.weightKg);
+    if (onAddBodyWeight && !Number.isNaN(parsedWeight) && parsedWeight > 0 && parsedWeight !== Number(latestWeightVal)) {
+      onAddBodyWeight(parsedWeight);
+    }
 
     if (profile.displayName?.trim() && currentUser && !currentUser.isGuest) {
       const updatedUser = await updateUserDisplayName(profile.displayName.trim());
@@ -251,8 +266,14 @@ export default function ProfileTab({
             )}
             <button
               onClick={() => {
-                if (!isEditing && currentUser && !currentUser.isGuest && currentUser.displayName) {
-                  setProfile((prev) => ({ ...prev, displayName: currentUser.displayName }));
+                if (!isEditing) {
+                  setProfile((prev) => ({
+                    ...prev,
+                    ...(currentUser && !currentUser.isGuest && currentUser.displayName
+                      ? { displayName: currentUser.displayName }
+                      : {}),
+                    weightKg: displayedWeightKg
+                  }));
                 }
                 setIsEditing(!isEditing);
               }}
@@ -397,7 +418,7 @@ export default function ProfileTab({
             <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B]">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Current Weight</span>
               <span className="text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5 block">
-                {profile.weightKg} kg
+                {displayedWeightKg} kg
               </span>
             </div>
 

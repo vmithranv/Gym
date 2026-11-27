@@ -28,6 +28,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import { MUSCLE_BUILDING_ROADMAP } from '../utils/keralaNutritionPlan';
+import { computeWorkoutVolumeKg, extractWorkoutDateStr, toLocalDateStr } from '../utils/storage';
 
 export default function ProgressTab({
   workoutHistory = [],
@@ -57,33 +58,38 @@ export default function ProgressTab({
   // Map completed workouts by date (YYYY-MM-DD)
   const workoutsByDate = {};
   workoutHistory.forEach((w) => {
-    const dStr = w.date || new Date(w.timestamp).toISOString().split('T')[0];
+    const dStr = extractWorkoutDateStr(w);
     workoutsByDate[dStr] = (workoutsByDate[dStr] || 0) + 1;
   });
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateStr(new Date());
 
   const monthWorkoutsCount = workoutHistory.filter((w) => {
-    const dStr = w.date || new Date(w.timestamp).toISOString().split('T')[0];
-    const d = new Date(dStr);
-    return d.getFullYear() === year && d.getMonth() === month;
+    const dStr = extractWorkoutDateStr(w);
+    const d = new Date(`${dStr}T00:00:00`);
+    return !Number.isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
   }).length;
 
-  const totalVolumeKg = workoutHistory.reduce((sum, workout) => {
-    const workoutVol = (workout.exercises || []).reduce((eSum, ex) => {
-      const exVol = (ex.sets || []).reduce((sSum, set) => {
-        if (set.completed) {
-          return sSum + (Number(set.weight) || 0) * (Number(set.reps) || 0);
-        }
-        return sSum;
-      }, 0);
-      return eSum + exVol;
-    }, 0);
-    return sum + workoutVol;
-  }, 12450);
+  const totalVolumeKg = workoutHistory.reduce((sum, workout) => sum + computeWorkoutVolumeKg(workout), 0);
 
-  const totalWorkouts = Math.max(workoutHistory.length + 14, 15);
-  const currentStreak = 4; // Consistency
+  const totalWorkouts = workoutHistory.length;
+
+  // Accurate day streak calculation matching Home Dashboard (local timezone safe)
+  const sortedDates = Array.from(new Set(workoutHistory.map((w) => extractWorkoutDateStr(w)))).sort().reverse();
+  let currentStreak = 0;
+  let checkDate = new Date();
+  checkDate.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 90; i++) {
+    const dKey = toLocalDateStr(checkDate);
+    if (sortedDates.includes(dKey)) {
+      currentStreak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else if (i === 0) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
 
   const availableExercises = Array.from(
     new Set([...Object.keys(progressionData), ...Object.keys(records)])
@@ -111,7 +117,9 @@ export default function ProgressTab({
     setShowWeightModal(false);
   };
 
-  const latestBodyWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 69.3;
+  const latestEntry = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1] : null;
+  const latestBodyWeight =
+    typeof latestEntry === 'object' && latestEntry !== null ? latestEntry.weight : latestEntry ?? 69.3;
 
   const gridColor = isDark ? '#2D333B' : '#E2E8F0';
   const axisColor = isDark ? '#64748B' : '#94A3B8';

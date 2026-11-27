@@ -16,25 +16,31 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { computeWorkoutVolumeKg, extractWorkoutDateStr, toLocalDateStr } from '../utils/storage';
 
 export default function HomeDashboardTab({
   workoutHistory = [],
-  records = {},
   weightHistory = [],
   onAddBodyWeight,
   onNavigateToTab,
-  onStartTodayWorkout,
   todayRoutine,
   todayDayName,
-  isRestDay,
   currentUser
 }) {
   const firstName =
     currentUser && !currentUser.isGuest && currentUser.displayName
       ? currentUser.displayName.split(' ')[0]
       : 'Athlete';
+
+  const latestWeightEntry =
+    weightHistory.length > 0 ? weightHistory[weightHistory.length - 1] : null;
+  const latestWeightVal =
+    typeof latestWeightEntry === 'object' && latestWeightEntry !== null
+      ? latestWeightEntry.weight
+      : latestWeightEntry;
+
   const [weightInput, setWeightInput] = useState(
-    weightHistory.length > 0 ? String(weightHistory[0].weight) : '65'
+    latestWeightVal ? String(latestWeightVal) : '65'
   );
   const [weightSavedNotice, setWeightSavedNotice] = useState(false);
 
@@ -49,8 +55,8 @@ export default function HomeDashboardTab({
   // 1. Calculate Total Workouts
   const totalWorkouts = workoutHistory.length;
 
-  // 2. Calculate Total Volume (kg)
-  const totalVolumeKg = workoutHistory.reduce((sum, w) => sum + (Number(w.totalVolume) || 0), 0);
+  // 2. Calculate Total Volume (kg) across completed sets cleanly
+  const totalVolumeKg = workoutHistory.reduce((sum, w) => sum + computeWorkoutVolumeKg(w), 0);
 
   // 3. Workouts This Week
   const now = new Date();
@@ -60,15 +66,16 @@ export default function HomeDashboardTab({
   startOfWeek.setHours(0, 0, 0, 0);
 
   const thisWeekCount = workoutHistory.filter((w) => {
-    const wDate = new Date(w.date || w.timestamp);
-    return wDate >= startOfWeek;
+    const dStr = extractWorkoutDateStr(w);
+    const wDate = new Date(`${dStr}T00:00:00`);
+    return !Number.isNaN(wDate.getTime()) && wDate >= startOfWeek;
   }).length;
 
   // 4. Calculate Current Day Streak
   const calculateStreak = () => {
     if (workoutHistory.length === 0) return 0;
     const sortedDates = Array.from(
-      new Set(workoutHistory.map((w) => (w.date || new Date(w.timestamp).toISOString().split('T')[0])))
+      new Set(workoutHistory.map((w) => extractWorkoutDateStr(w)))
     ).sort().reverse();
 
     let streak = 0;
@@ -76,7 +83,7 @@ export default function HomeDashboardTab({
     checkDate.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 90; i++) {
-      const dateStr = checkDate.toISOString().split('T')[0];
+      const dateStr = toLocalDateStr(checkDate);
       if (sortedDates.includes(dateStr)) {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);
@@ -100,7 +107,7 @@ export default function HomeDashboardTab({
     const workoutDateCounts = {};
 
     workoutHistory.forEach((w) => {
-      const d = w.date || new Date(w.timestamp).toISOString().split('T')[0];
+      const d = extractWorkoutDateStr(w);
       workoutDateCounts[d] = (workoutDateCounts[d] || 0) + 1;
     });
 
@@ -108,7 +115,7 @@ export default function HomeDashboardTab({
     for (let i = 89; i >= 0; i--) {
       const d = new Date(endDate);
       d.setDate(endDate.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateStr(d);
       const count = workoutDateCounts[dateStr] || 0;
       days.push({
         date: dateStr,
@@ -127,16 +134,18 @@ export default function HomeDashboardTab({
     e.preventDefault();
     const val = parseFloat(weightInput);
     if (!isNaN(val) && val > 0) {
-      onAddBodyWeight(val);
+      const d = new Date();
+      const dateLabel = `${d.getMonth() + 1}/${d.getDate() < 10 ? '0' : ''}${d.getDate()}`;
+      onAddBodyWeight({ date: dateLabel, weight: val });
       setWeightSavedNotice(true);
       try {
         confetti({ particleCount: 35, spread: 50, origin: { y: 0.7 } });
-      } catch (err) {}
+      } catch {}
       setTimeout(() => setWeightSavedNotice(false), 2500);
     }
   };
 
-  const lastLoggedWeight = weightHistory.length > 0 ? weightHistory[0].weight : 65;
+  const lastLoggedWeight = latestWeightVal ?? 65;
 
   return (
     <div className="space-y-4 pb-32 animate-in fade-in duration-200">

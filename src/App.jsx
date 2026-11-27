@@ -24,7 +24,12 @@ import FloatingAICoach from './components/FloatingAICoach';
 import AuthModal from './components/AuthModal';
 import AdminDashboard from './components/AdminDashboard';
 import { getStoredUser, logoutUser, persistUser, initAuthListener } from './utils/authService';
-import { logAnalyticsEvent } from './utils/analyticsService';
+import {
+  logAnalyticsEvent,
+  mergeGuestIntoUserAnalytics,
+  reconcileDeviceAnalytics
+} from './utils/analyticsService';
+import { computeWorkoutVolumeKg, toLocalDateStr } from './utils/storage';
 import { Dumbbell, Sun, Moon, LogIn } from 'lucide-react';
 
 const isAdminRoutePath = () => {
@@ -63,15 +68,20 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(() => !getStoredUser() && !isAdminRoutePath());
   const [isUpgradeAuth, setIsUpgradeAuth] = useState(false);
 
-  // Track initial app visit on launch
+  // Track initial app visit on launch (only on main app with active session, never logging /admin visits as app users)
   useEffect(() => {
-    logAnalyticsEvent('app_visit', { route: window.location.pathname }, getStoredUser());
+    const existing = getStoredUser();
+    reconcileDeviceAnalytics(existing);
+    if (!isAdminRoutePath() && existing) {
+      logAnalyticsEvent('app_visit', { route: window.location.pathname }, existing);
+    }
   }, []);
 
   // Sync Firebase OAuth redirects & active Firebase auth state cleanly on startup
   useEffect(() => {
     const unsubscribe = initAuthListener((syncedUser) => {
       if (syncedUser) {
+        mergeGuestIntoUserAnalytics(syncedUser);
         setCurrentUser(syncedUser);
         setShowAuthModal(false);
         setIsUpgradeAuth(false);
@@ -84,6 +94,9 @@ export default function App() {
   }, []);
 
   const handleAuthSuccess = (user) => {
+    if (user && !user.isGuest) {
+      mergeGuestIntoUserAnalytics(user);
+    }
     setCurrentUser(user);
     persistUser(user);
     setShowAuthModal(false);
@@ -191,13 +204,7 @@ export default function App() {
   };
 
   const handleSaveWorkout = (completedWorkout) => {
-    const totalVolumeKg = (completedWorkout.exercises || []).reduce((sum, ex) => {
-      const exVol = (ex.sets || []).reduce((sSum, s) => {
-        if (s.completed) return sSum + (Number(s.weight) || 0) * (Number(s.reps) || 0);
-        return sSum;
-      }, 0);
-      return sum + exVol;
-    }, 0);
+    const totalVolumeKg = computeWorkoutVolumeKg(completedWorkout);
 
     const startMs = Date.parse(completedWorkout.startedAt || completedWorkout.startTime || '');
     const durationMinutes =
@@ -209,7 +216,7 @@ export default function App() {
       name: workoutName,
       totalVolume: totalVolumeKg,
       durationMinutes,
-      date: new Date().toISOString().split('T')[0],
+      date: toLocalDateStr(new Date()),
       completedAt: new Date().toISOString()
     };
     setWorkoutHistory((prev) => [finishedWorkoutObj, ...prev]);
@@ -247,7 +254,15 @@ export default function App() {
   };
 
   const handleAddBodyWeight = (newEntry) => {
-    setWeightHistory((prev) => [...prev, newEntry]);
+    const formatted =
+      typeof newEntry === 'number'
+        ? {
+            date: `${new Date().getMonth() + 1}/${new Date().getDate() < 10 ? '0' : ''}${new Date().getDate()}`,
+            weight: newEntry
+          }
+        : newEntry;
+    if (!formatted || Number.isNaN(Number(formatted.weight))) return;
+    setWeightHistory((prev) => [...prev, formatted]);
   };
 
   const handleStartRoutineNow = (routine) => {
@@ -426,6 +441,8 @@ export default function App() {
           <ProfileTab
             key={currentUser?.uid || 'guest'}
             currentUser={currentUser}
+            weightHistory={weightHistory}
+            onAddBodyWeight={handleAddBodyWeight}
             onUserUpdated={setCurrentUser}
             onLogout={handleLogout}
             onOpenUpgradeAuth={handleOpenUpgradeAuth}

@@ -1,6 +1,6 @@
 // Centralized RepKraft User & Feature Engagement Analytics Service
 // Mirrors live events to Firebase Firestore (`users` & `activity_logs` collections)
-// while always storing lightweight local telemetry in localStorage so offline/preview mode never breaks.
+// while keeping exact, reconciled telemetry in localStorage when offline or in Local Telemetry Mode.
 
 import {
   getFirestore,
@@ -16,11 +16,15 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { getFirebaseApp, isFirebaseConfigured } from './authService';
-import { loadFromStorage, saveToStorage } from './storage';
+import {
+  loadFromStorage,
+  saveToStorage,
+  getOrCreateDeviceId,
+  computeWorkoutVolumeKg
+} from './storage';
 
 const ANALYTICS_USERS_KEY = 'repkraft_analytics_users';
 const ANALYTICS_LOGS_KEY = 'repkraft_analytics_logs';
-const DEVICE_ID_KEY = 'repkraft_device_uid';
 const ADMIN_CONFIG_KEY = 'repkraft_admin_security';
 const ADMIN_SESSION_KEY = 'repkraft_admin_unlocked';
 
@@ -45,13 +49,7 @@ const getDb = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PLATFORM & DEVICE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-export const getOrCreateDeviceId = () => {
-  const existing = loadFromStorage(DEVICE_ID_KEY, null);
-  if (existing) return existing;
-  const generated = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  saveToStorage(DEVICE_ID_KEY, generated);
-  return generated;
-};
+export { getOrCreateDeviceId };
 
 export const detectPlatform = () => {
   if (typeof window === 'undefined') return 'web';
@@ -101,7 +99,7 @@ const resolveAnalyticsIdentity = (user) => {
   }
   const deviceId = getOrCreateDeviceId();
   return {
-    uid: user?.uid || deviceId,
+    uid: deviceId,
     name: user?.displayName || 'Guest Lifter',
     email: user?.email || 'Guest Visitor',
     authProvider: 'guest'
@@ -165,6 +163,347 @@ export const verifyAdminPin = (pinAttempt) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RECONCILIATION HELPERS (EXACT COUNTS, NO GHOST DUPLICATES)
+// ─────────────────────────────────────────────────────────────────────────────
+const recomputeUserCountsFromLogs = (usersMap, logsList) => {
+  const nextUsers = {};
+  Object.entries(usersMap || {}).forEach(([uid, u]) => {
+    if (!u) return;
+    const isDemoUser = Boolean(u.isDemo);
+    const userLogs = logsList.filter((l) => l.uid === uid && Boolean(l.isDemo) === isDemoUser);
+    const workoutsCompleted = userLogs.filter((l) => l.eventType === 'workout_completed').length;
+    const cardioLoggedCount = userLogs.filter((l) => l.eventType === 'cardio_logged').length;
+    const foodLoggedCount = userLogs.filter((l) => l.eventType === 'food_logged').length;
+    const aiQuestionsCount = userLogs.filter((l) => l.eventType === 'ai_coach_asked').length;
+    const reelsSavedCount = userLogs.filter((l) => l.eventType === 'reel_link_saved').length;
+    const sessionEvents = userLogs.filter(
+      (l) => l.eventType === 'app_visit' || l.eventType === 'user_login'
+    ).length;
+
+    nextUsers[uid] = {
+      ...u,
+      workoutsCompleted,
+      cardioLoggedCount,
+      foodLoggedCount,
+      aiQuestionsCount,
+      reelsSavedCount,
+      totalSessionsCount: Math.max(sessionEvents, Number(u.totalSessionsCount) || 1)
+    };
+  });
+  return nextUsers;
+};
+
+/**
+ * Merges an anonymous/guest browser session into a signed-in user so upgrading doesn't leave duplicate ghost users.
+ */
+export const mergeGuestIntoUserAnalytics = (targetUser) => {
+  if (!targetUser || targetUser.isGuest || !targetUser.uid) return;
+
+  const deviceId = getOrCreateDeviceId();
+  const usersMap = loadFromStorage(ANALYTICS_USERS_KEY, {});
+  const existingLogs = loadFromStorage(ANALYTICS_LOGS_KEY, []);
+
+  let changedUsers = false;
+  let mergedGuestStats = null;
+
+  // Migrate local guest/device rows on this browser into the authenticated account
+  Object.entries(usersMap).forEach(([uid, u]) => {
+    const isLocalGuestRow =
+      u &&
+      !u.isDemo &&
+      uid !== targetUser.uid &&
+      (uid === deviceId || uid.startsWith('guest-') || uid.startsWith('dev-') || u.authProvider === 'guest');
+    if (isLocalGuestRow) {
+      mergedGuestStats = mergedGuestStats || {
+        workoutsCompleted: 0,
+        cardioLoggedCount: 0,
+        foodLoggedCount: 0,
+        aiQuestionsCount: 0,
+        reelsSavedCount: 0,
+        totalSessionsCount: 0
+      };
+      mergedGuestStats.workoutsCompleted += Number(u.workoutsCompleted) || 0;
+      mergedGuestStats.cardioLoggedCount += Number(u.cardioLoggedCount) || 0;
+      mergedGuestStats.foodLoggedCount += Number(u.foodLoggedCount) || 0;
+      mergedGuestStats.aiQuestionsCount += Number(u.aiQuestionsCount) || 0;
+      mergedGuestStats.reelsSavedCount += Number(u.reelsSavedCount) || 0;
+      mergedGuestStats.totalSessionsCount += Number(u.totalSessionsCount) || 0;
+      delete usersMap[uid];
+      changedUsers = true;
+    }
+  });
+
+  let changedLogs = false;
+  const reattributedLogs = (Array.isArray(existingLogs) ? existingLogs : []).map((evt) => {
+    const isLocalGuestEvent =
+      evt &&
+      !evt.isDemo &&
+      evt.uid &&
+      (evt.uid === deviceId || evt.uid.startsWith('guest-') || evt.uid.startsWith('dev-') || evt.authProvider === 'guest');
+    if (isLocalGuestEvent) {
+      changedLogs = true;
+      return {
+        ...evt,
+        uid: targetUser.uid,
+        userName: targetUser.displayName || targetUser.email?.split('@')[0] || 'Athlete',
+        userEmail: targetUser.email || '',
+        authProvider: normalizeAuthProvider(targetUser.provider, false)
+      };
+    }
+    return evt;
+  });
+
+  if (changedLogs) {
+    saveToStorage(ANALYTICS_LOGS_KEY, reattributedLogs);
+  }
+
+  if (changedUsers || mergedGuestStats) {
+    saveToStorage(ANALYTICS_USERS_KEY, usersMap);
+    upsertAnalyticsUser(targetUser, {
+      fieldIncrements: mergedGuestStats || {}
+    });
+  }
+};
+
+/**
+ * Idempotently syncs existing device data (registered accounts, workouts, cardio, logged meals, saved reels)
+ * into local telemetry so metrics accurately reflect real activity even from before analytics was enabled.
+ */
+export const reconcileDeviceAnalytics = (explicitUser = null) => {
+  try {
+    const activeUser = explicitUser || loadFromStorage('repkraft_user_auth', null);
+    if (activeUser && !activeUser.isGuest) {
+      mergeGuestIntoUserAnalytics(activeUser);
+    }
+
+    const localAccounts = loadFromStorage('repkraft_local_accounts', {});
+    const usersMap = { ...loadFromStorage(ANALYTICS_USERS_KEY, {}) };
+    const existingLogs = Array.isArray(loadFromStorage(ANALYTICS_LOGS_KEY, []))
+      ? [...loadFromStorage(ANALYTICS_LOGS_KEY, [])]
+      : [];
+
+    const existingIds = new Set(existingLogs.map((l) => l.id));
+    const platform = detectPlatform();
+    const deviceLabel = detectDeviceLabel();
+
+    // 1. Ensure registered local accounts exist cleanly in users directory
+    Object.values(localAccounts || {}).forEach((acc) => {
+      if (acc && acc.uid && !usersMap[acc.uid]) {
+        usersMap[acc.uid] = {
+          uid: acc.uid,
+          name: acc.displayName || acc.email?.split('@')[0] || 'Athlete',
+          email: acc.email || '',
+          authProvider: normalizeAuthProvider(acc.provider, false),
+          platform,
+          deviceLabel,
+          createdAt: acc.createdAt || new Date().toISOString(),
+          lastActiveAt: acc.createdAt || new Date().toISOString(),
+          totalSessionsCount: 1,
+          workoutsCompleted: 0,
+          cardioLoggedCount: 0,
+          foodLoggedCount: 0,
+          aiQuestionsCount: 0,
+          reelsSavedCount: 0,
+          isDemo: false
+        };
+      }
+    });
+
+    // If an active user exists, attribute historical device records to them
+    if (activeUser) {
+      const identity = resolveAnalyticsIdentity(activeUser);
+      if (!usersMap[identity.uid]) {
+        usersMap[identity.uid] = {
+          uid: identity.uid,
+          name: identity.name,
+          email: identity.email,
+          authProvider: identity.authProvider,
+          platform,
+          deviceLabel,
+          createdAt: new Date().toISOString(),
+          lastActiveAt: new Date().toISOString(),
+          totalSessionsCount: 1,
+          workoutsCompleted: 0,
+          cardioLoggedCount: 0,
+          foodLoggedCount: 0,
+          aiQuestionsCount: 0,
+          reelsSavedCount: 0,
+          isDemo: false
+        };
+      }
+
+      const newBackfills = [];
+
+      // 2. Backfill real completed workouts
+      const workoutHistory = loadFromStorage('workout_history', []);
+      (Array.isArray(workoutHistory) ? workoutHistory : []).forEach((w, idx) => {
+        const wKey = `backfill-wo-${w.id || idx}`;
+        const ts = Date.parse(w.completedAt || w.startedAt || w.date || '') || Date.now();
+        const workoutName = w.name || w.routineName || 'Workout';
+        const alreadyLogged =
+          existingIds.has(wKey) ||
+          existingLogs.some(
+            (l) =>
+              l.eventType === 'workout_completed' &&
+              Math.abs((l.timestamp || 0) - ts) < 15000 &&
+              (l.details?.workoutName === workoutName || l.uid === identity.uid)
+          );
+        if (!alreadyLogged) {
+          existingIds.add(wKey);
+          newBackfills.push({
+            id: wKey,
+            eventType: 'workout_completed',
+            uid: identity.uid,
+            userName: identity.name,
+            userEmail: identity.email,
+            authProvider: identity.authProvider,
+            platform,
+            deviceLabel,
+            details: {
+              workoutName,
+              category: w.category || workoutName,
+              totalVolume: computeWorkoutVolumeKg(w),
+              durationMinutes: w.durationMinutes || 35
+            },
+            timestamp: ts,
+            createdAt: new Date(ts).toISOString(),
+            isDemo: false
+          });
+        }
+      });
+
+      // 3. Backfill user-created cardio sessions (ignore hardcoded 'cl-init-1' starter row)
+      const cardioLogs = loadFromStorage('cardio_logs', []);
+      (Array.isArray(cardioLogs) ? cardioLogs : []).forEach((c) => {
+        if (!c || c.id === 'cl-init-1') return;
+        const cKey = `backfill-cardio-${c.id}`;
+        const ts = Number(c.timestamp) || Date.parse(c.date || '') || Date.now();
+        const alreadyLogged =
+          existingIds.has(cKey) ||
+          existingLogs.some(
+            (l) =>
+              l.eventType === 'cardio_logged' &&
+              Math.abs((l.timestamp || 0) - ts) < 15000
+          );
+        if (!alreadyLogged) {
+          existingIds.add(cKey);
+          newBackfills.push({
+            id: cKey,
+            eventType: 'cardio_logged',
+            uid: identity.uid,
+            userName: identity.name,
+            userEmail: identity.email,
+            authProvider: identity.authProvider,
+            platform,
+            deviceLabel,
+            details: {
+              title: c.title || 'Cardio Session',
+              durationMinutes: Number(c.durationMinutes) || 20
+            },
+            timestamp: ts,
+            createdAt: new Date(ts).toISOString(),
+            isDemo: false
+          });
+        }
+      });
+
+      // 4. Backfill user-logged food entries (ignore default starter items '1', '2', '3')
+      const nutrition = loadFromStorage('nutrition', { logs: [] });
+      (Array.isArray(nutrition?.logs) ? nutrition.logs : []).forEach((m) => {
+        if (!m || m.id === '1' || m.id === '2' || m.id === '3') return;
+        const mKey = `backfill-food-${m.id}`;
+        const tsMatch = String(m.id).match(/meal-(\d+)/);
+        const ts = tsMatch ? Number(tsMatch[1]) : Date.now();
+        const alreadyLogged =
+          existingIds.has(mKey) ||
+          existingLogs.some(
+            (l) =>
+              l.eventType === 'food_logged' &&
+              Math.abs((l.timestamp || 0) - ts) < 15000
+          );
+        if (!alreadyLogged) {
+          existingIds.add(mKey);
+          newBackfills.push({
+            id: mKey,
+            eventType: 'food_logged',
+            uid: identity.uid,
+            userName: identity.name,
+            userEmail: identity.email,
+            authProvider: identity.authProvider,
+            platform,
+            deviceLabel,
+            details: {
+              mealName: m.name || 'Meal',
+              calories: Number(m.calories) || 0,
+              protein: Number(m.protein) || 0
+            },
+            timestamp: ts,
+            createdAt: new Date(ts).toISOString(),
+            isDemo: false
+          });
+        }
+      });
+
+      // 5. Backfill saved video reel links
+      const savedReelsMap = loadFromStorage('saved_reel_links', {});
+      Object.entries(savedReelsMap || {}).forEach(([exerciseName, list]) => {
+        if (!Array.isArray(list)) return;
+        list.forEach((link) => {
+          if (!link || !link.url) return;
+          const rKey = `backfill-reel-${link.id || encodeURIComponent(link.url)}`;
+          const ts = Number(link.createdAt) || Date.now();
+          const alreadyLogged =
+            existingIds.has(rKey) ||
+            existingLogs.some(
+              (l) =>
+                l.eventType === 'reel_link_saved' &&
+                ((link.createdAt && Math.abs((l.timestamp || 0) - link.createdAt) < 15000) ||
+                  (l.details?.exerciseName === exerciseName && l.details?.title === link.title))
+            );
+          if (!alreadyLogged) {
+            existingIds.add(rKey);
+            newBackfills.push({
+              id: rKey,
+              eventType: 'reel_link_saved',
+              uid: identity.uid,
+              userName: identity.name,
+              userEmail: identity.email,
+              authProvider: identity.authProvider,
+              platform,
+              deviceLabel,
+              details: {
+                exerciseName,
+                platform: link.platform || 'instagram',
+                title: link.title || 'Saved Reel'
+              },
+              timestamp: ts,
+              createdAt: new Date(ts).toISOString(),
+              isDemo: false
+            });
+          }
+        });
+      });
+
+      const combinedLogs = [...newBackfills, ...existingLogs]
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, 400);
+
+      // Recompute real user counts consistently with logs
+      const syncedUsers = recomputeUserCountsFromLogs(usersMap, combinedLogs);
+      saveToStorage(ANALYTICS_USERS_KEY, syncedUsers);
+      saveToStorage(ANALYTICS_LOGS_KEY, combinedLogs);
+      return;
+    }
+
+    // Always normalize user directory counts (including any cached demo entries) from logs
+    const syncedUsersOnly = recomputeUserCountsFromLogs(usersMap, existingLogs);
+    saveToStorage(ANALYTICS_USERS_KEY, syncedUsersOnly);
+  } catch (err) {
+    console.warn('Reconcile device analytics error:', err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // USER PROFILE UPSERT (`users` Collection)
 // ─────────────────────────────────────────────────────────────────────────────
 export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncrements = {} } = {}) => {
@@ -174,7 +513,6 @@ export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncre
     const deviceLabel = detectDeviceLabel();
     const nowIso = new Date().toISOString();
 
-    // 1. Update local mirror synchronously
     const usersMap = loadFromStorage(ANALYTICS_USERS_KEY, {});
     const existing = usersMap[identity.uid] || {};
 
@@ -199,7 +537,7 @@ export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncre
     usersMap[identity.uid] = updatedLocal;
     saveToStorage(ANALYTICS_USERS_KEY, usersMap);
 
-    // 2. Non-blocking write to Firebase Firestore
+    // Non-blocking write to Firebase Firestore
     const db = getDb();
     if (db) {
       const firestorePayload = {
@@ -250,13 +588,17 @@ let lastVisitLogTs = 0;
 export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) => {
   try {
     const activeUser = explicitUser || loadFromStorage('repkraft_user_auth', null);
+    if (!activeUser && eventType === 'app_visit') {
+      // Wait for user to either sign in or continue as Guest instead of logging an unconfirmed ghost row
+      return;
+    }
+
     const identity = resolveAnalyticsIdentity(activeUser);
     const platform = detectPlatform();
     const deviceLabel = detectDeviceLabel();
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
-    // Prevent duplicate app_visit events caused by React StrictMode double-mounting
     if (eventType === 'app_visit') {
       if (now - lastVisitLogTs < 4000) return;
       lastVisitLogTs = now;
@@ -269,7 +611,6 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
     if (eventType === 'ai_coach_asked') fieldIncrements.aiQuestionsCount = 1;
     if (eventType === 'reel_link_saved') fieldIncrements.reelsSavedCount = 1;
 
-    // Keep user activity timestamp & counters fresh
     upsertAnalyticsUser(activeUser, {
       incrementSession: eventType === 'app_visit' || eventType === 'user_login',
       fieldIncrements
@@ -290,12 +631,10 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
       isDemo: false
     };
 
-    // 1. Append locally (capped at newest 300 entries to keep localStorage fast)
     const existingLogs = loadFromStorage(ANALYTICS_LOGS_KEY, []);
-    const updatedLogs = [logEntry, ...(Array.isArray(existingLogs) ? existingLogs : [])].slice(0, 300);
+    const updatedLogs = [logEntry, ...(Array.isArray(existingLogs) ? existingLogs : [])].slice(0, 400);
     saveToStorage(ANALYTICS_LOGS_KEY, updatedLogs);
 
-    // 2. Async background Firestore write
     const db = getDb();
     if (db) {
       addDoc(collection(db, 'activity_logs'), {
@@ -311,9 +650,12 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADMIN FETCHING, METRICS AGGREGATION, DEMO SEEDING & CSV EXPORT
+// ADMIN FETCHING, EXACT METRICS AGGREGATION, DEMO SEEDING & CSV EXPORT
 // ─────────────────────────────────────────────────────────────────────────────
 export const fetchAdminAnalytics = async () => {
+  // Always ensure real device data & accounts are reconciled accurately first
+  reconcileDeviceAnalytics();
+
   const localUsersMap = loadFromStorage(ANALYTICS_USERS_KEY, {});
   const localLogs = loadFromStorage(ANALYTICS_LOGS_KEY, []);
 
@@ -333,7 +675,6 @@ export const fetchAdminAnalytics = async () => {
       const remoteLogs = logsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
       if (remoteUsers.length > 0 || remoteLogs.length > 0) {
-        // Merge remote + any unsynced local entries by key
         const mergedUsersMap = { ...localUsersMap };
         remoteUsers.forEach((u) => {
           mergedUsersMap[u.uid] = { ...mergedUsersMap[u.uid], ...u };
@@ -377,7 +718,6 @@ export const computeAdminMetrics = (users = [], logs = []) => {
   let androidPwaUsers = 0;
   let dauToday = 0;
   let activeLast7Days = 0;
-  let totalWorkoutsUsersCount = 0;
 
   users.forEach((u) => {
     const provider = normalizeAuthProvider(u.authProvider, u.authProvider === 'guest');
@@ -391,19 +731,17 @@ export const computeAdminMetrics = (users = [], logs = []) => {
     const lastActiveMs = Date.parse(u.lastActiveAt || u.createdAt || 0);
     if (lastActiveMs >= todayCutoff) dauToday++;
     if (lastActiveMs >= sevenDaysCutoff) activeLast7Days++;
-
-    totalWorkoutsUsersCount += Number(u.workoutsCompleted) || 0;
   });
 
-  // Breakdown across feature events
+  // Compute workouts, volume, and feature engagement strictly from unified logs so KPI & chart match 100%
   let pushWorkouts = 0;
   let pullWorkouts = 0;
   let legWorkouts = 0;
   let freestyleWorkouts = 0;
-  let workoutCompletedEvents = 0;
+  let totalWorkoutsFromLogs = 0;
   let totalVolumeKg = 0;
-  let cardioCount = 0;
-  let foodCount = 0;
+  let cardioCountFromLogs = 0;
+  let foodCountFromLogs = 0;
   let libraryViews = 0;
   let aiCoachChats = 0;
   let reelsSaved = 0;
@@ -413,16 +751,16 @@ export const computeAdminMetrics = (users = [], logs = []) => {
     const cat = String(evt.details?.category || evt.details?.workoutName || '').toLowerCase();
 
     if (t === 'workout_completed') {
-      workoutCompletedEvents++;
+      totalWorkoutsFromLogs++;
       totalVolumeKg += Number(evt.details?.totalVolume) || 0;
       if (cat.includes('push')) pushWorkouts++;
       else if (cat.includes('pull')) pullWorkouts++;
       else if (cat.includes('leg')) legWorkouts++;
       else freestyleWorkouts++;
     } else if (t === 'cardio_logged') {
-      cardioCount++;
+      cardioCountFromLogs++;
     } else if (t === 'food_logged') {
-      foodCount++;
+      foodCountFromLogs++;
     } else if (t === 'exercise_library_viewed') {
       libraryViews++;
     } else if (t === 'ai_coach_asked') {
@@ -432,17 +770,20 @@ export const computeAdminMetrics = (users = [], logs = []) => {
     }
   });
 
+  const userSumWorkouts = users.reduce((s, u) => s + (Number(u.workoutsCompleted) || 0), 0);
   const userSumCardio = users.reduce((s, u) => s + (Number(u.cardioLoggedCount) || 0), 0);
   const userSumFood = users.reduce((s, u) => s + (Number(u.foodLoggedCount) || 0), 0);
-  const totalWorkouts = Math.max(totalWorkoutsUsersCount, workoutCompletedEvents);
-  const totalCardioLogs = Math.max(userSumCardio, cardioCount);
-  const totalFoodLogs = Math.max(userSumFood, foodCount);
+
+  // If user totals exceed explicit event rows (e.g. old remote docs before event logs), keep untracked workouts explicit in Freestyle/Other
+  const totalWorkouts = Math.max(totalWorkoutsFromLogs, userSumWorkouts);
+  const totalCardioLogs = Math.max(cardioCountFromLogs, userSumCardio);
+  const totalFoodLogs = Math.max(foodCountFromLogs, userSumFood);
 
   const featurePopularity = [
     { id: 'push', label: 'Push Workouts', count: pushWorkouts, color: '#0D9488' },
     { id: 'pull', label: 'Pull Workouts', count: pullWorkouts, color: '#0284C7' },
     { id: 'legs', label: 'Leg Workouts', count: legWorkouts, color: '#2563EB' },
-    { id: 'freestyle', label: 'Freestyle Workouts', count: freestyleWorkouts, color: '#6366F1' },
+    { id: 'freestyle', label: 'Freestyle / Other Workouts', count: freestyleWorkouts + Math.max(0, totalWorkouts - totalWorkoutsFromLogs), color: '#6366F1' },
     { id: 'cardio', label: 'Cardio Sessions', count: totalCardioLogs, color: '#F97316' },
     { id: 'food', label: 'Food & Macros Logged', count: totalFoodLogs, color: '#059669' },
     { id: 'library', label: 'Exercise Library & Guides', count: libraryViews, color: '#8B5CF6' },
@@ -463,17 +804,23 @@ export const computeAdminMetrics = (users = [], logs = []) => {
     totalVolumeKg,
     totalCardioLogs,
     totalFoodLogs,
+    hasDemoData: users.some((u) => u.isDemo) || logs.some((l) => l.isDemo),
     featurePopularity
   };
 };
 
-// Sample multi-user dataset helper for preview/testing of Admin UI
+// Consistent sample dataset where every user counter matches the exact demo event rows
 export const seedDemoAnalyticsData = () => {
   const now = Date.now();
   const min = 60 * 1000;
   const hr = 60 * min;
 
   const existingUsers = loadFromStorage(ANALYTICS_USERS_KEY, {});
+  const cleanedUsers = {};
+  Object.entries(existingUsers || {}).forEach(([k, u]) => {
+    if (!u.isDemo) cleanedUsers[k] = u;
+  });
+
   const demoUsers = {
     'demo-u-rahul': {
       uid: 'demo-u-rahul',
@@ -484,12 +831,12 @@ export const seedDemoAnalyticsData = () => {
       deviceLabel: 'Android PWA',
       createdAt: new Date(now - 14 * 24 * hr).toISOString(),
       lastActiveAt: new Date(now - 12 * min).toISOString(),
-      totalSessionsCount: 18,
-      workoutsCompleted: 11,
-      cardioLoggedCount: 5,
-      foodLoggedCount: 24,
-      aiQuestionsCount: 4,
-      reelsSavedCount: 3,
+      totalSessionsCount: 6,
+      workoutsCompleted: 2,
+      cardioLoggedCount: 1,
+      foodLoggedCount: 1,
+      aiQuestionsCount: 1,
+      reelsSavedCount: 1,
       isDemo: true
     },
     'demo-u-arjun': {
@@ -501,12 +848,12 @@ export const seedDemoAnalyticsData = () => {
       deviceLabel: 'Desktop Chrome',
       createdAt: new Date(now - 9 * 24 * hr).toISOString(),
       lastActiveAt: new Date(now - 2 * hr).toISOString(),
-      totalSessionsCount: 11,
-      workoutsCompleted: 7,
-      cardioLoggedCount: 3,
-      foodLoggedCount: 14,
-      aiQuestionsCount: 6,
-      reelsSavedCount: 2,
+      totalSessionsCount: 4,
+      workoutsCompleted: 2,
+      cardioLoggedCount: 1,
+      foodLoggedCount: 1,
+      aiQuestionsCount: 1,
+      reelsSavedCount: 0,
       isDemo: true
     },
     'demo-u-sneha': {
@@ -517,18 +864,18 @@ export const seedDemoAnalyticsData = () => {
       platform: 'android_pwa',
       deviceLabel: 'Android PWA',
       createdAt: new Date(now - 5 * 24 * hr).toISOString(),
-      lastActiveAt: new Date(now - 4 * hr).toISOString(),
-      totalSessionsCount: 8,
-      workoutsCompleted: 5,
-      cardioLoggedCount: 6,
-      foodLoggedCount: 12,
-      aiQuestionsCount: 3,
-      reelsSavedCount: 5,
+      lastActiveAt: new Date(now - 29 * min).toISOString(),
+      totalSessionsCount: 3,
+      workoutsCompleted: 1,
+      cardioLoggedCount: 1,
+      foodLoggedCount: 1,
+      aiQuestionsCount: 0,
+      reelsSavedCount: 1,
       isDemo: true
     },
     'demo-u-guest1': {
       uid: 'demo-u-guest1',
-      name: 'Guest Lifter',
+      name: 'Demo Guest Visitor',
       email: 'Guest Visitor',
       authProvider: 'guest',
       platform: 'web',
@@ -537,17 +884,17 @@ export const seedDemoAnalyticsData = () => {
       lastActiveAt: new Date(now - 45 * min).toISOString(),
       totalSessionsCount: 2,
       workoutsCompleted: 1,
-      cardioLoggedCount: 1,
-      foodLoggedCount: 2,
-      aiQuestionsCount: 1,
+      cardioLoggedCount: 0,
+      foodLoggedCount: 1,
+      aiQuestionsCount: 0,
       reelsSavedCount: 0,
       isDemo: true
     }
   };
 
-  saveToStorage(ANALYTICS_USERS_KEY, { ...demoUsers, ...existingUsers });
+  saveToStorage(ANALYTICS_USERS_KEY, { ...demoUsers, ...cleanedUsers });
 
-  const existingLogs = loadFromStorage(ANALYTICS_LOGS_KEY, []).filter((l) => !l.isDemo);
+  const realLogs = (loadFromStorage(ANALYTICS_LOGS_KEY, []) || []).filter((l) => !l.isDemo);
   const demoLogs = [
     {
       id: 'demo-evt-1',
@@ -579,7 +926,7 @@ export const seedDemoAnalyticsData = () => {
       id: 'demo-evt-3',
       eventType: 'food_logged',
       uid: 'demo-u-guest1',
-      userName: 'Guest Lifter',
+      userName: 'Demo Guest Visitor',
       userEmail: 'Guest Visitor',
       authProvider: 'guest',
       platform: 'web',
@@ -652,10 +999,140 @@ export const seedDemoAnalyticsData = () => {
       timestamp: now - 6 * hr,
       createdAt: new Date(now - 6 * hr).toISOString(),
       isDemo: true
+    },
+    {
+      id: 'demo-evt-9',
+      eventType: 'workout_completed',
+      uid: 'demo-u-rahul',
+      userName: 'Rahul Nair',
+      userEmail: 'rahul.nair@gmail.com',
+      authProvider: 'google',
+      platform: 'android_pwa',
+      details: { workoutName: 'Thursday: Push Day', category: 'Push', totalVolume: 1520, durationMinutes: 44 },
+      timestamp: now - 26 * hr,
+      createdAt: new Date(now - 26 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-10',
+      eventType: 'workout_completed',
+      uid: 'demo-u-arjun',
+      userName: 'Arjun Menon',
+      userEmail: 'arjun.m@outlook.com',
+      authProvider: 'email',
+      platform: 'web',
+      details: { workoutName: 'Saturday: Leg Day', category: 'Legs', totalVolume: 2150, durationMinutes: 50 },
+      timestamp: now - 30 * hr,
+      createdAt: new Date(now - 30 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-11',
+      eventType: 'workout_completed',
+      uid: 'demo-u-guest1',
+      userName: 'Demo Guest Visitor',
+      userEmail: 'Guest Visitor',
+      authProvider: 'guest',
+      platform: 'web',
+      details: { workoutName: 'Freestyle Workout', category: 'Freestyle', totalVolume: 640, durationMinutes: 25 },
+      timestamp: now - 10 * hr,
+      createdAt: new Date(now - 10 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-12',
+      eventType: 'cardio_logged',
+      uid: 'demo-u-rahul',
+      userName: 'Rahul Nair',
+      userEmail: 'rahul.nair@gmail.com',
+      authProvider: 'google',
+      platform: 'android_pwa',
+      details: { title: 'Post-Lift Light Walk', durationMinutes: 10 },
+      timestamp: now - 11 * hr,
+      createdAt: new Date(now - 11 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-13',
+      eventType: 'cardio_logged',
+      uid: 'demo-u-arjun',
+      userName: 'Arjun Menon',
+      userEmail: 'arjun.m@outlook.com',
+      authProvider: 'email',
+      platform: 'web',
+      details: { title: 'Stationary Cycling Intervals', durationMinutes: 18 },
+      timestamp: now - 15 * hr,
+      createdAt: new Date(now - 15 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-14',
+      eventType: 'food_logged',
+      uid: 'demo-u-rahul',
+      userName: 'Rahul Nair',
+      userEmail: 'rahul.nair@gmail.com',
+      authProvider: 'google',
+      platform: 'android_pwa',
+      details: { mealName: 'Kerala Fish + Matta Rice + Thoran', calories: 640 },
+      timestamp: now - 8 * hr,
+      createdAt: new Date(now - 8 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-15',
+      eventType: 'food_logged',
+      uid: 'demo-u-arjun',
+      userName: 'Arjun Menon',
+      userEmail: 'arjun.m@outlook.com',
+      authProvider: 'email',
+      platform: 'web',
+      details: { mealName: 'Appam + 3 Boiled Eggs + Protein Shake', calories: 580 },
+      timestamp: now - 14 * hr,
+      createdAt: new Date(now - 14 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-16',
+      eventType: 'food_logged',
+      uid: 'demo-u-sneha',
+      userName: 'Sneha Kurian',
+      userEmail: 'sneha.k@gmail.com',
+      authProvider: 'google',
+      platform: 'android_pwa',
+      details: { mealName: 'Chapathi + Paneer Bhurji', calories: 510 },
+      timestamp: now - 7 * hr,
+      createdAt: new Date(now - 7 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-17',
+      eventType: 'ai_coach_asked',
+      uid: 'demo-u-rahul',
+      userName: 'Rahul Nair',
+      userEmail: 'rahul.nair@gmail.com',
+      authProvider: 'google',
+      platform: 'android_pwa',
+      details: { question: "Today's Kerala protein meals" },
+      timestamp: now - 9 * hr,
+      createdAt: new Date(now - 9 * hr).toISOString(),
+      isDemo: true
+    },
+    {
+      id: 'demo-evt-18',
+      eventType: 'reel_link_saved',
+      uid: 'demo-u-sneha',
+      userName: 'Sneha Kurian',
+      userEmail: 'sneha.k@gmail.com',
+      authProvider: 'google',
+      platform: 'android_pwa',
+      details: { exerciseName: 'Wide-Grip Lat Pulldown', platform: 'instagram' },
+      timestamp: now - 18 * hr,
+      createdAt: new Date(now - 18 * hr).toISOString(),
+      isDemo: true
     }
   ];
 
-  saveToStorage(ANALYTICS_LOGS_KEY, [...existingLogs, ...demoLogs]);
+  saveToStorage(ANALYTICS_LOGS_KEY, [...realLogs, ...demoLogs]);
 };
 
 export const clearDemoAnalyticsData = () => {
@@ -671,6 +1148,12 @@ export const clearDemoAnalyticsData = () => {
     ANALYTICS_LOGS_KEY,
     (Array.isArray(logs) ? logs : []).filter((l) => !l.isDemo)
   );
+};
+
+export const resetLocalAnalyticsAndResync = () => {
+  saveToStorage(ANALYTICS_USERS_KEY, {});
+  saveToStorage(ANALYTICS_LOGS_KEY, []);
+  reconcileDeviceAnalytics();
 };
 
 export const exportAdminCsvReport = (users = [], logs = [], metrics = {}) => {
