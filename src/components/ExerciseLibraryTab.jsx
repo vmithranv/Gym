@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -18,6 +18,7 @@ import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 import ExerciseAnimation from './ExerciseAnimation';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { useSavedReels, GENERAL_REELS_KEY } from '../utils/reelStorage';
+import { logAnalyticsEvent } from '../utils/analyticsService';
 
 // 40+ Pre-populated Gym Exercises categorized by Body & Equipment
 export const ALL_LIBRARY_EXERCISES = [
@@ -79,6 +80,10 @@ export const ALL_LIBRARY_EXERCISES = [
 ];
 
 export default function ExerciseLibraryTab({ onOpenFormGuide }) {
+  useEffect(() => {
+    logAnalyticsEvent('exercise_library_viewed', { surface: 'Exercise Library Tab' });
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBodyFilter, setSelectedBodyFilter] = useState('All');
   const [selectedEquipFilter, setSelectedEquipFilter] = useState('All');

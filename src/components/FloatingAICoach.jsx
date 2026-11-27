@@ -3,14 +3,9 @@ import {
   Bot,
   X,
   Send,
-  Sparkles,
-  Dumbbell,
-  Heart,
-  UtensilsCrossed,
-  Clock,
-  RotateCcw,
-  ChevronDown
+  Sparkles
 } from 'lucide-react';
+import { logAnalyticsEvent } from '../utils/analyticsService';
 
 // Offline Intelligent AI Coach knowledge base tailored specifically to RepKraft
 const COACH_KNOWLEDGE = [
@@ -95,6 +90,7 @@ export default function FloatingAICoach() {
     const userMsg = { id: `user-${Date.now()}`, sender: 'user', text: q };
     setMessages((prev) => [...prev, userMsg]);
     setInputVal('');
+    logAnalyticsEvent('ai_coach_asked', { question: q.slice(0, 120) });
 
     // Generate intelligent response
     setTimeout(() => {

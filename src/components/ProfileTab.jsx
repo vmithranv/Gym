@@ -9,17 +9,21 @@ import {
   Upload,
   Check,
   Sparkles,
-  Link
+  Link,
+  ShieldCheck,
+  BarChart3
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { updateUserDisplayName } from '../utils/authService';
+import { getAdminSecurityConfig, isAdminEmailMatch, isAdminUnlocked } from '../utils/analyticsService';
 
 export default function ProfileTab({
   currentUser,
   onUserUpdated,
   onLogout,
   onOpenUpgradeAuth,
+  onOpenAdminDashboard,
   isDark,
   onToggleTheme
 }) {
@@ -120,6 +124,13 @@ export default function ProfileTab({
   };
 
   const isGuest = !currentUser || currentUser.isGuest;
+
+  const adminConfig = getAdminSecurityConfig();
+  const canShowAdminButton =
+    onOpenAdminDashboard &&
+    (isAdminEmailMatch(currentUser) ||
+      isAdminUnlocked(currentUser) ||
+      (!adminConfig.hasEnvAdminEmail && !adminConfig.adminEmail && currentUser && !currentUser.isGuest));
 
   return (
     <div className="space-y-4 pb-32 animate-in fade-in duration-200">
@@ -470,6 +481,33 @@ export default function ProfileTab({
             </button>
           </div>
         </div>
+
+        {/* Hidden / Protected Admin Analytics Portal (Visible only for Admin / Authorized setup) */}
+        {canShowAdminButton && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-500/10 via-blue-500/10 to-indigo-500/10 border border-teal-500/25 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-[#A3E635] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-black text-slate-900 dark:text-white block">
+                  Admin Analytics Portal
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {isAdminEmailMatch(currentUser)
+                    ? 'Verified Admin Account — View live user & feature telemetry.'
+                    : 'Protected by configurable Admin PIN & VITE_ADMIN_EMAIL.'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenAdminDashboard}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs active:scale-95 transition-all"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Admin Analytics</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

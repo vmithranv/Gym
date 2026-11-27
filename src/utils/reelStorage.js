@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { loadFromStorage, saveToStorage } from './storage';
+import { logAnalyticsEvent } from './analyticsService';
 
 export const REELS_STORAGE_KEY = 'saved_reel_links';
 export const REELS_UPDATED_EVENT = 'repkraft:reels-updated';
@@ -147,6 +148,11 @@ export const addSavedReel = (exerciseName, rawUrl, customTitle = '') => {
   }
 
   notifyReelsUpdated();
+  logAnalyticsEvent('reel_link_saved', {
+    exerciseName: key,
+    platform: parsed.platform,
+    title: cleanedTitle
+  });
   return { ok: true, link: savedLink, map: updatedMap, alreadySaved: existingIdx >= 0 };
 };
 

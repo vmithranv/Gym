@@ -22,16 +22,51 @@ import ProfileTab from './components/ProfileTab';
 import ExerciseFormModal from './components/ExerciseFormModal';
 import FloatingAICoach from './components/FloatingAICoach';
 import AuthModal from './components/AuthModal';
+import AdminDashboard from './components/AdminDashboard';
 import { getStoredUser, logoutUser, persistUser, initAuthListener } from './utils/authService';
+import { logAnalyticsEvent } from './utils/analyticsService';
 import { Dumbbell, Sun, Moon, LogIn } from 'lucide-react';
+
+const isAdminRoutePath = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  return path === '/admin' || path === '/admin/' || window.location.hash === '#admin';
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [isAdminRoute, setIsAdminRoute] = useState(() => isAdminRoutePath());
+
+  // Listen for browser Back/Forward navigation on /admin
+  useEffect(() => {
+    const handlePop = () => setIsAdminRoute(isAdminRoutePath());
+    window.addEventListener('popstate', handlePop);
+    window.addEventListener('hashchange', handlePop);
+    return () => {
+      window.removeEventListener('popstate', handlePop);
+      window.removeEventListener('hashchange', handlePop);
+    };
+  }, []);
+
+  const navigateToAdmin = () => {
+    window.history.pushState({}, '', '/admin');
+    setIsAdminRoute(true);
+  };
+
+  const navigateBackFromAdmin = () => {
+    window.history.pushState({}, '', '/');
+    setIsAdminRoute(false);
+  };
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
-  const [showAuthModal, setShowAuthModal] = useState(() => !getStoredUser());
+  const [showAuthModal, setShowAuthModal] = useState(() => !getStoredUser() && !isAdminRoutePath());
   const [isUpgradeAuth, setIsUpgradeAuth] = useState(false);
+
+  // Track initial app visit on launch
+  useEffect(() => {
+    logAnalyticsEvent('app_visit', { route: window.location.pathname }, getStoredUser());
+  }, []);
 
   // Sync Firebase OAuth redirects & active Firebase auth state cleanly on startup
   useEffect(() => {
@@ -40,6 +75,7 @@ export default function App() {
         setCurrentUser(syncedUser);
         setShowAuthModal(false);
         setIsUpgradeAuth(false);
+        logAnalyticsEvent('user_login', { authProvider: syncedUser.provider }, syncedUser);
       }
     });
     return () => {
@@ -52,6 +88,11 @@ export default function App() {
     persistUser(user);
     setShowAuthModal(false);
     setIsUpgradeAuth(false);
+    logAnalyticsEvent(
+      'user_login',
+      { authProvider: user?.isGuest ? 'guest' : user?.provider || 'email' },
+      user
+    );
   };
 
   const handleLogout = async () => {
@@ -150,11 +191,35 @@ export default function App() {
   };
 
   const handleSaveWorkout = (completedWorkout) => {
+    const totalVolumeKg = (completedWorkout.exercises || []).reduce((sum, ex) => {
+      const exVol = (ex.sets || []).reduce((sSum, s) => {
+        if (s.completed) return sSum + (Number(s.weight) || 0) * (Number(s.reps) || 0);
+        return sSum;
+      }, 0);
+      return sum + exVol;
+    }, 0);
+
+    const startMs = Date.parse(completedWorkout.startedAt || completedWorkout.startTime || '');
+    const durationMinutes =
+      startMs && !Number.isNaN(startMs) ? Math.max(1, Math.round((Date.now() - startMs) / 60000)) : 35;
+
+    const workoutName = completedWorkout.name || completedWorkout.routineName || 'Workout';
     const finishedWorkoutObj = {
       ...completedWorkout,
+      name: workoutName,
+      totalVolume: totalVolumeKg,
+      durationMinutes,
+      date: new Date().toISOString().split('T')[0],
       completedAt: new Date().toISOString()
     };
     setWorkoutHistory((prev) => [finishedWorkoutObj, ...prev]);
+
+    logAnalyticsEvent('workout_completed', {
+      workoutName,
+      category: completedWorkout.category || workoutName,
+      totalVolume: totalVolumeKg,
+      durationMinutes
+    });
   };
 
   const handleRecordPr = (exerciseName, weight, reps) => {
@@ -204,13 +269,23 @@ export default function App() {
     setActiveSession({
       id: `session-${Date.now()}`,
       name: routine.name,
+      category: routine.category || 'PPL',
       routineId: routine.id,
       startedAt: new Date().toISOString(),
       exercises: initialExercises
     });
 
+    logAnalyticsEvent('workout_started', {
+      workoutName: routine.name,
+      category: routine.category || 'PPL'
+    });
+
     setActiveTab('workout');
   };
+
+  if (isAdminRoute) {
+    return <AdminDashboard currentUser={currentUser} onBackToApp={navigateBackFromAdmin} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F7FA] dark:bg-[#0F1115] text-slate-900 dark:text-white flex flex-col font-sans max-w-lg mx-auto shadow-2xl relative border-x border-slate-200/80 dark:border-[#2D333B]/40 transition-colors duration-200">
@@ -307,7 +382,12 @@ export default function App() {
 
         {activeTab === 'exercises' && (
           <ExerciseLibraryTab
-            onOpenFormGuide={setSelectedGuideExercise}
+            onOpenFormGuide={(ex) => {
+              setSelectedGuideExercise(ex);
+              logAnalyticsEvent('exercise_library_viewed', {
+                surface: `Guide: ${ex?.name || 'Exercise'}`
+              });
+            }}
           />
         )}
 
@@ -349,6 +429,7 @@ export default function App() {
             onUserUpdated={setCurrentUser}
             onLogout={handleLogout}
             onOpenUpgradeAuth={handleOpenUpgradeAuth}
+            onOpenAdminDashboard={navigateToAdmin}
             isDark={isDark}
             onToggleTheme={toggleTheme}
           />

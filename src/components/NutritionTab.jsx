@@ -26,6 +26,7 @@ import {
   EXPANDED_FOOD_LIBRARY
 } from '../utils/keralaNutritionPlan';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
+import { logAnalyticsEvent } from '../utils/analyticsService';
 
 export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
   // Modal states
@@ -155,6 +156,13 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
       ...nutritionData,
       logs: [newMeal, ...logs]
     });
+
+    logAnalyticsEvent('food_logged', {
+      mealName: newMeal.name,
+      calories: newMeal.calories,
+      protein: newMeal.protein,
+      slot: food.category || 'Food Library'
+    });
   };
 
   // 1-tap schedule timetable meal logger
@@ -175,6 +183,13 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
     onUpdateNutrition({
       ...nutritionData,
       logs: [newMeal, ...logs]
+    });
+
+    logAnalyticsEvent('food_logged', {
+      mealName: newMeal.name,
+      calories: newMeal.calories,
+      protein: newMeal.protein,
+      slot: item.title || 'Kerala Meal Slot'
     });
   };
 
@@ -229,6 +244,13 @@ export default function NutritionTab({ nutritionData, onUpdateNutrition }) {
     onUpdateNutrition({
       ...nutritionData,
       logs: [newMeal, ...logs]
+    });
+
+    logAnalyticsEvent('food_logged', {
+      mealName: newMeal.name,
+      calories: newMeal.calories,
+      protein: newMeal.protein,
+      slot: 'Custom Meal'
     });
 
     setMealName('');

@@ -48,6 +48,8 @@ if (isFirebaseConfigured) {
   }
 }
 
+export const getFirebaseApp = () => app;
+
 const AUTH_STORAGE_KEY = 'repkraft_user_auth';
 const LOCAL_ACCOUNTS_KEY = 'repkraft_local_accounts';
 

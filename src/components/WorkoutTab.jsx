@@ -26,6 +26,7 @@ import {
   getExerciseMuscleGroup,
   getExerciseRecommendedRest
 } from '../utils/exerciseData';
+import { logAnalyticsEvent } from '../utils/analyticsService';
 
 const DAYS_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -147,6 +148,7 @@ export default function WorkoutTab({
     setActiveSession({
       id: `session-${Date.now()}`,
       name: 'Freestyle Workout',
+      category: 'Freestyle',
       startedAt: new Date().toISOString(),
       exercises: [
         {
@@ -160,6 +162,10 @@ export default function WorkoutTab({
           ]
         }
       ]
+    });
+    logAnalyticsEvent('workout_started', {
+      workoutName: 'Freestyle Workout',
+      category: 'Freestyle'
     });
   };
 
@@ -455,8 +461,11 @@ export default function WorkoutTab({
                 onClick={() => {
                   const newSession = {
                     id: `session-${Date.now()}`,
+                    name: activeSelectedRoutine.name,
                     routineName: activeSelectedRoutine.name,
+                    category: activeSelectedRoutine.category || 'Push',
                     startTime: new Date().toISOString(),
+                    startedAt: new Date().toISOString(),
                     exercises: activeSelectedRoutine.exercises.map((ex) => ({
                       ...ex,
                       sets: Array.from({ length: ex.targetSets || 2 }, (_, i) => ({
@@ -469,6 +478,10 @@ export default function WorkoutTab({
                     }))
                   };
                   setActiveSession(newSession);
+                  logAnalyticsEvent('workout_started', {
+                    workoutName: activeSelectedRoutine.name,
+                    category: activeSelectedRoutine.category || 'PPL'
+                  });
                 }}
                 className="flex-1 py-4 px-6 rounded-xl bg-white text-teal-800 hover:bg-slate-50 font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-lg active:scale-98 transition-all cursor-pointer"
               >

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
+import { logAnalyticsEvent } from '../utils/analyticsService';
 
 // Built-in Web Audio beep sound generator for interval switches and finish
 const playIntervalBeep = (type = 'switch') => {
@@ -212,6 +213,11 @@ export default function CardioTab() {
               const updatedLogs = [newLog, ...cardioLogs];
               setCardioLogs(updatedLogs);
               saveToStorage('cardio_logs', updatedLogs);
+              logAnalyticsEvent('cardio_logged', {
+                title: newLog.title,
+                durationMinutes: newLog.durationMinutes,
+                mode: 'interval_timer'
+              });
 
               return 0;
             }
@@ -255,6 +261,11 @@ export default function CardioTab() {
     const updated = [newLog, ...cardioLogs];
     setCardioLogs(updated);
     saveToStorage('cardio_logs', updated);
+    logAnalyticsEvent('cardio_logged', {
+      title: newLog.title,
+      durationMinutes: newLog.durationMinutes,
+      mode: 'manual'
+    });
     setShowQuickLogModal(false);
   };
 
