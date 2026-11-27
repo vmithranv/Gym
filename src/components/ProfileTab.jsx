@@ -11,12 +11,18 @@ import {
   Sparkles,
   Link,
   ShieldCheck,
-  BarChart3
+  BarChart3,
+  Phone
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { updateUserDisplayName } from '../utils/authService';
-import { getAdminSecurityConfig, isAdminEmailMatch, isAdminUnlocked } from '../utils/analyticsService';
+import {
+  getAdminSecurityConfig,
+  isAdminEmailMatch,
+  isAdminUnlocked,
+  upsertAnalyticsUser
+} from '../utils/analyticsService';
 
 export default function ProfileTab({
   currentUser,
@@ -46,7 +52,8 @@ export default function ProfileTab({
       wakeUpTime: '5:00 AM',
       gymTime: '6:00 AM',
       primaryGoal: 'Overall Stronger & Muscular Physique',
-      weightUnit: 'kg'
+      weightUnit: 'kg',
+      phone: ''
     })
   );
 
@@ -54,23 +61,43 @@ export default function ProfileTab({
 
   const [isEditing, setIsEditing] = useState(false);
   const [saveNotice, setSaveNotice] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(() => profile.phone || '');
+  const [phoneSavedNotice, setPhoneSavedNotice] = useState(false);
+
+  const handleSavePhoneQuick = (e) => {
+    e.preventDefault();
+    const cleanPhone = (phoneInput || '').trim().slice(0, 32);
+    const updatedProfile = { ...profile, phone: cleanPhone };
+    setProfile(updatedProfile);
+    saveToStorage('repkraft_user_profile_data', updatedProfile);
+    upsertAnalyticsUser(currentUser, { phone: cleanPhone });
+    setPhoneSavedNotice(true);
+    setTimeout(() => setPhoneSavedNotice(false), 2500);
+  };
 
   // Handle Save
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    saveToStorage('repkraft_user_profile_data', profile);
+    const cleanPhone = (profile.phone || '').trim().slice(0, 32);
+    const updatedProfile = { ...profile, phone: cleanPhone };
+    setProfile(updatedProfile);
+    setPhoneInput(cleanPhone);
+    saveToStorage('repkraft_user_profile_data', updatedProfile);
 
     const parsedWeight = parseFloat(profile.weightKg);
     if (onAddBodyWeight && !Number.isNaN(parsedWeight) && parsedWeight > 0 && parsedWeight !== Number(latestWeightVal)) {
       onAddBodyWeight(parsedWeight);
     }
 
+    let latestUser = currentUser;
     if (profile.displayName?.trim() && currentUser && !currentUser.isGuest) {
       const updatedUser = await updateUserDisplayName(profile.displayName.trim());
-      if (updatedUser && onUserUpdated) {
-        onUserUpdated(updatedUser);
+      if (updatedUser) {
+        latestUser = updatedUser;
+        if (onUserUpdated) onUserUpdated(updatedUser);
       }
     }
+    upsertAnalyticsUser(latestUser, { phone: cleanPhone });
 
     setIsEditing(false);
     setSaveNotice(true);
@@ -211,7 +238,10 @@ export default function ProfileTab({
                 </span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
-                {currentUser?.email || 'Offline Guest Account (Data in localStorage)'}
+                {currentUser?.email ||
+                  (currentUser?.isAnonymous
+                    ? 'Cloud Guest Account (Firebase Anonymous Sync)'
+                    : 'Offline Guest Account (Data in localStorage)')}
               </span>
             </div>
           </div>
@@ -233,17 +263,57 @@ export default function ProfileTab({
                 Upgrade from Guest:
               </strong>
               <span className="text-slate-600 dark:text-slate-300 text-[11px]">
-                Sign in with Google to protect your records from browser cache clears.
+                Link Google or Email to upgrade your guest account without losing workout history.
               </span>
             </div>
-            <button
-              onClick={onOpenUpgradeAuth}
-              className="px-3 py-1.5 rounded-xl bg-teal-600 dark:bg-[#A3E635] text-white dark:text-black font-extrabold text-[10px] uppercase shrink-0 shadow-xs active:scale-95 transition-all"
+              <button
+                onClick={onOpenUpgradeAuth}
+                className="px-3 py-1.5 rounded-xl bg-teal-600 dark:bg-[#A3E635] text-white dark:text-black font-extrabold text-[10px] uppercase shrink-0 shadow-xs active:scale-95 transition-all"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+
+        {/* Optional Phone / WhatsApp Number (Quick Save & Firestore Sync) */}
+        <form
+          onSubmit={handleSavePhoneQuick}
+          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#22262E]/60 border border-slate-100 dark:border-[#2D333B] space-y-2 text-xs"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <label
+              htmlFor="profile-phone-input"
+              className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5"
             >
-              Sign In
+              <Phone className="w-3.5 h-3.5 text-teal-600 dark:text-[#A3E635]" />
+              Phone / WhatsApp Number
+            </label>
+            {phoneSavedNotice && (
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-[#A3E635] flex items-center gap-0.5 animate-in fade-in">
+                <Check className="w-3 h-3 stroke-[3]" /> Saved!
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              id="profile-phone-input"
+              type="tel"
+              placeholder="e.g. +91 98765 43210"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-[#181B20] border border-slate-200 dark:border-[#2D333B] text-slate-900 dark:text-white font-mono text-xs outline-none focus:ring-2 focus:ring-teal-500"
+            />
+            <button
+              type="submit"
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] uppercase tracking-wider cursor-pointer active:scale-95 transition-all shrink-0"
+            >
+              Save
             </button>
           </div>
-        )}
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+            Optional — saved to your personal fitness profile
+          </p>
+        </form>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────

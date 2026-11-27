@@ -80,11 +80,54 @@ export const getCloudDiagnostics = () => ({
 // ─────────────────────────────────────────────────────────────────────────────
 export { getOrCreateDeviceId };
 
+export const detectDeviceType = () => {
+  if (typeof window === 'undefined') return 'Desktop';
+  const ua = (window.navigator?.userAgent || '').toLowerCase();
+  if (/android/.test(ua)) return 'Android';
+  const isTouchMac = window.navigator?.platform === 'MacIntel' && (window.navigator?.maxTouchPoints || 0) > 1;
+  if (/iphone|ipad|ipod/.test(ua) || isTouchMac) return 'iOS';
+  return 'Desktop';
+};
+
+export const detectBrowserName = () => {
+  if (typeof window === 'undefined') return 'Browser';
+  const ua = (window.navigator?.userAgent || '').toLowerCase();
+  if (/samsungbrowser/.test(ua)) return 'Samsung Internet';
+  if (/edg\/|edga\/|edgios\//.test(ua)) return 'Edge';
+  if (/opr\/|opera/.test(ua)) return 'Opera';
+  if (/firefox|fxios/.test(ua)) return 'Firefox';
+  if (/chrome|crios/.test(ua)) return 'Chrome';
+  if (/safari/.test(ua)) return 'Safari';
+  return 'Browser';
+};
+
+export const detectIsInstalledPWA = () => {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.navigator?.standalone === true ||
+    document.referrer.startsWith('android-app://')
+  );
+};
+
+export const getClientEnvironmentMetadata = () => {
+  const deviceType = detectDeviceType();
+  const browser = detectBrowserName();
+  const isInstalledPWA = detectIsInstalledPWA();
+  let timezone = '';
+  let language = '';
+  if (typeof window !== 'undefined') {
+    try {
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch {}
+    language = window.navigator?.language || window.navigator?.userLanguage || '';
+  }
+  return { deviceType, browser, isInstalledPWA, timezone, language };
+};
+
 export const detectPlatform = () => {
   if (typeof window === 'undefined') return 'web';
-  const isStandalone =
-    window.matchMedia?.('(display-mode: standalone)').matches ||
-    window.navigator?.standalone === true;
+  const isStandalone = detectIsInstalledPWA();
   const ua = (window.navigator?.userAgent || '').toLowerCase();
   const isAndroid = /android/.test(ua);
   const isTwaOrWebView = /\bwv\b|; wv\)/.test(ua) || document.referrer.startsWith('android-app://');
@@ -96,17 +139,14 @@ export const detectPlatform = () => {
 
 export const detectDeviceLabel = () => {
   if (typeof window === 'undefined') return 'Web Browser';
-  const ua = (window.navigator?.userAgent || '').toLowerCase();
-  const platform = detectPlatform();
-  if (platform === 'android_pwa') return 'Android PWA';
-  if (/android/.test(ua)) return 'Android Browser';
-  if (/iphone|ipad|ipod/.test(ua)) {
-    return window.navigator?.standalone ? 'iOS PWA' : 'iOS Safari';
-  }
-  if (/edg\//.test(ua)) return 'Desktop Edge';
-  if (/chrome/.test(ua)) return 'Desktop Chrome';
-  if (/firefox/.test(ua)) return 'Desktop Firefox';
-  return 'Web Browser';
+  const deviceType = detectDeviceType();
+  const browser = detectBrowserName();
+  const isStandalone = detectIsInstalledPWA();
+  if (isStandalone && deviceType === 'Android') return 'Android PWA';
+  if (isStandalone && deviceType === 'iOS') return 'iOS PWA';
+  if (deviceType === 'Android') return `Android ${browser}`;
+  if (deviceType === 'iOS') return `iOS ${browser}`;
+  return `Desktop ${browser}`;
 };
 
 export const normalizeAuthProvider = (provider, isGuest) => {
@@ -117,21 +157,31 @@ export const normalizeAuthProvider = (provider, isGuest) => {
   return 'guest';
 };
 
+const getSavedProfilePhone = () => {
+  const profile = loadFromStorage('repkraft_user_profile_data', {});
+  return typeof profile?.phone === 'string' ? profile.phone.trim().slice(0, 32) : '';
+};
+
 const resolveAnalyticsIdentity = (user) => {
   if (user && !user.isGuest && user.uid) {
     return {
       uid: user.uid,
       name: user.displayName || user.email?.split('@')[0] || 'Athlete',
       email: user.email || '',
-      authProvider: normalizeAuthProvider(user.provider, false)
+      authProvider: normalizeAuthProvider(user.provider, false),
+      isAnonymous: false
     };
   }
-  const deviceId = getOrCreateDeviceId();
+  const guestUid = (user?.uid && String(user.uid).trim()) || getOrCreateDeviceId();
+  const isAnon = Boolean(
+    user?.isAnonymous || (!guestUid.startsWith('dev-') && !guestUid.startsWith('guest-'))
+  );
   return {
-    uid: deviceId,
+    uid: guestUid,
     name: user?.displayName || 'Guest Lifter',
     email: user?.email || 'Guest Visitor',
-    authProvider: 'guest'
+    authProvider: 'guest',
+    isAnonymous: isAnon
   };
 };
 
@@ -225,7 +275,7 @@ const recomputeUserCountsFromLogs = (usersMap, logsList) => {
 /**
  * Merges an anonymous/guest browser session into a signed-in user so upgrading doesn't leave duplicate ghost users.
  */
-export const mergeGuestIntoUserAnalytics = (targetUser) => {
+export const mergeGuestIntoUserAnalytics = (targetUser, previousGuestUid = null) => {
   if (!targetUser || targetUser.isGuest || !targetUser.uid) return;
 
   const deviceId = getOrCreateDeviceId();
@@ -234,13 +284,18 @@ export const mergeGuestIntoUserAnalytics = (targetUser) => {
 
   let changedUsers = false;
   let mergedGuestStats = null;
+  let carriedPhone = '';
 
   Object.entries(usersMap).forEach(([uid, u]) => {
     const isLocalGuestRow =
       u &&
       !u.isDemo &&
       uid !== targetUser.uid &&
-      (uid === deviceId || uid.startsWith('guest-') || uid.startsWith('dev-') || u.authProvider === 'guest');
+      ((previousGuestUid && uid === previousGuestUid) ||
+        uid === deviceId ||
+        uid.startsWith('guest-') ||
+        uid.startsWith('dev-') ||
+        u.authProvider === 'guest');
     if (isLocalGuestRow) {
       mergedGuestStats = mergedGuestStats || {
         workoutsCompleted: 0,
@@ -256,6 +311,7 @@ export const mergeGuestIntoUserAnalytics = (targetUser) => {
       mergedGuestStats.aiQuestionsCount += Number(u.aiQuestionsCount) || 0;
       mergedGuestStats.reelsSavedCount += Number(u.reelsSavedCount) || 0;
       mergedGuestStats.totalSessionsCount += Number(u.totalSessionsCount) || 0;
+      if (!carriedPhone && u.phone) carriedPhone = u.phone;
       delete usersMap[uid];
       changedUsers = true;
     }
@@ -267,7 +323,12 @@ export const mergeGuestIntoUserAnalytics = (targetUser) => {
       evt &&
       !evt.isDemo &&
       evt.uid &&
-      (evt.uid === deviceId || evt.uid.startsWith('guest-') || evt.uid.startsWith('dev-') || evt.authProvider === 'guest');
+      evt.uid !== targetUser.uid &&
+      ((previousGuestUid && evt.uid === previousGuestUid) ||
+        evt.uid === deviceId ||
+        evt.uid.startsWith('guest-') ||
+        evt.uid.startsWith('dev-') ||
+        evt.authProvider === 'guest');
     if (isLocalGuestEvent) {
       changedLogs = true;
       return {
@@ -285,10 +346,11 @@ export const mergeGuestIntoUserAnalytics = (targetUser) => {
     saveToStorage(ANALYTICS_LOGS_KEY, reattributedLogs);
   }
 
-  if (changedUsers || mergedGuestStats) {
+  if (changedUsers || mergedGuestStats || carriedPhone) {
     saveToStorage(ANALYTICS_USERS_KEY, usersMap);
     upsertAnalyticsUser(targetUser, {
-      fieldIncrements: mergedGuestStats || {}
+      fieldIncrements: mergedGuestStats || {},
+      ...(carriedPhone ? { phone: carriedPhone } : {})
     });
   }
 };
@@ -560,23 +622,43 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // USER PROFILE UPSERT (`users` Collection)
 // ─────────────────────────────────────────────────────────────────────────────
-export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncrements = {} } = {}) => {
+export const upsertAnalyticsUser = (
+  user,
+  { incrementSession = false, fieldIncrements = {}, phone, isInstalledPWA: explicitPwaInstalled } = {}
+) => {
   try {
     const identity = resolveAnalyticsIdentity(user);
     const platform = detectPlatform();
     const deviceLabel = detectDeviceLabel();
+    const envMeta = getClientEnvironmentMetadata();
     const nowIso = new Date().toISOString();
 
     const usersMap = loadFromStorage(ANALYTICS_USERS_KEY, {});
     const existing = usersMap[identity.uid] || {};
+
+    const resolvedPhone =
+      phone !== undefined
+        ? String(phone || '').trim().slice(0, 32)
+        : (existing.phone ?? getSavedProfilePhone());
+    const resolvedIsPwa =
+      explicitPwaInstalled !== undefined
+        ? Boolean(explicitPwaInstalled)
+        : Boolean(existing.isInstalledPWA || envMeta.isInstalledPWA);
 
     const updatedLocal = {
       uid: identity.uid,
       name: identity.name,
       email: identity.email,
       authProvider: identity.authProvider,
+      isAnonymous: identity.isAnonymous,
       platform,
       deviceLabel,
+      deviceType: envMeta.deviceType,
+      browser: envMeta.browser,
+      isInstalledPWA: resolvedIsPwa,
+      timezone: envMeta.timezone,
+      language: envMeta.language,
+      phone: resolvedPhone,
       createdAt: existing.createdAt || nowIso,
       lastActiveAt: nowIso,
       totalSessionsCount: (existing.totalSessionsCount || 0) + (incrementSession ? 1 : 0),
@@ -598,8 +680,15 @@ export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncre
         name: identity.name,
         email: identity.email,
         authProvider: identity.authProvider,
+        isAnonymous: identity.isAnonymous,
         platform,
         deviceLabel,
+        deviceType: envMeta.deviceType,
+        browser: envMeta.browser,
+        isInstalledPWA: resolvedIsPwa,
+        timezone: envMeta.timezone,
+        language: envMeta.language,
+        phone: resolvedPhone,
         createdAt: existing.createdAt || nowIso,
         lastActiveAt: nowIso,
         lastActiveServer: serverTimestamp(),
@@ -906,6 +995,16 @@ export const subscribeToAdminAnalytics = (onUpdate) => {
   };
 };
 
+const normalizeDeviceType = (u) => {
+  if (u?.deviceType === 'Android' || u?.deviceType === 'iOS' || u?.deviceType === 'Desktop') {
+    return u.deviceType;
+  }
+  const label = String(u?.deviceLabel || '').toLowerCase();
+  if (u?.platform === 'android_pwa' || label.includes('android')) return 'Android';
+  if (label.includes('ios') || label.includes('iphone') || label.includes('ipad')) return 'iOS';
+  return 'Desktop';
+};
+
 export const computeAdminMetrics = (users = [], logs = []) => {
   const now = Date.now();
   const startOfToday = new Date();
@@ -918,8 +1017,12 @@ export const computeAdminMetrics = (users = [], logs = []) => {
   let guestUsers = 0;
   let webUsers = 0;
   let androidPwaUsers = 0;
+  let androidDevices = 0;
+  let iosDevices = 0;
+  let desktopDevices = 0;
   let dauToday = 0;
   let activeLast7Days = 0;
+  const installedPwaUids = new Set();
 
   users.forEach((u) => {
     const provider = normalizeAuthProvider(u.authProvider, u.authProvider === 'guest');
@@ -929,6 +1032,15 @@ export const computeAdminMetrics = (users = [], logs = []) => {
 
     if (u.platform === 'android_pwa') androidPwaUsers++;
     else webUsers++;
+
+    const devType = normalizeDeviceType(u);
+    if (devType === 'Android') androidDevices++;
+    else if (devType === 'iOS') iosDevices++;
+    else desktopDevices++;
+
+    if (u.isInstalledPWA === true && u.uid) {
+      installedPwaUids.add(u.uid);
+    }
 
     const lastActiveMs = Date.parse(u.lastActiveAt || u.createdAt || 0);
     if (lastActiveMs >= todayCutoff) dauToday++;
@@ -946,6 +1058,7 @@ export const computeAdminMetrics = (users = [], logs = []) => {
   let libraryViews = 0;
   let aiCoachChats = 0;
   let reelsSaved = 0;
+  let pwaInstalledEvents = 0;
 
   logs.forEach((evt) => {
     const t = evt.eventType;
@@ -968,8 +1081,13 @@ export const computeAdminMetrics = (users = [], logs = []) => {
       aiCoachChats++;
     } else if (t === 'reel_link_saved') {
       reelsSaved++;
+    } else if (t === 'pwa_installed') {
+      pwaInstalledEvents++;
+      if (evt.uid) installedPwaUids.add(evt.uid);
     }
   });
+
+  const pwaInstallCount = Math.max(installedPwaUids.size, pwaInstalledEvents);
 
   const userSumWorkouts = users.reduce((s, u) => s + (Number(u.workoutsCompleted) || 0), 0);
   const userSumCardio = users.reduce((s, u) => s + (Number(u.cardioLoggedCount) || 0), 0);
@@ -998,6 +1116,11 @@ export const computeAdminMetrics = (users = [], logs = []) => {
     guestUsers,
     webUsers,
     androidPwaUsers,
+    androidDevices,
+    iosDevices,
+    desktopDevices,
+    pwaInstallCount,
+    pwaInstalledEvents,
     dauToday,
     activeLast7Days,
     totalWorkouts,
@@ -1027,8 +1150,15 @@ export const seedDemoAnalyticsData = () => {
       name: 'Rahul Nair',
       email: 'rahul.nair@gmail.com',
       authProvider: 'google',
+      isAnonymous: false,
       platform: 'android_pwa',
       deviceLabel: 'Android PWA',
+      deviceType: 'Android',
+      browser: 'Chrome',
+      isInstalledPWA: true,
+      timezone: 'Asia/Calcutta',
+      language: 'en-IN',
+      phone: '+91 98470 11223',
       createdAt: new Date(now - 14 * 24 * hr).toISOString(),
       lastActiveAt: new Date(now - 12 * min).toISOString(),
       totalSessionsCount: 6,
@@ -1044,8 +1174,15 @@ export const seedDemoAnalyticsData = () => {
       name: 'Arjun Menon',
       email: 'arjun.m@outlook.com',
       authProvider: 'email',
+      isAnonymous: false,
       platform: 'web',
       deviceLabel: 'Desktop Chrome',
+      deviceType: 'Desktop',
+      browser: 'Chrome',
+      isInstalledPWA: false,
+      timezone: 'Asia/Calcutta',
+      language: 'en-IN',
+      phone: '',
       createdAt: new Date(now - 9 * 24 * hr).toISOString(),
       lastActiveAt: new Date(now - 2 * hr).toISOString(),
       totalSessionsCount: 4,
@@ -1061,8 +1198,15 @@ export const seedDemoAnalyticsData = () => {
       name: 'Sneha Kurian',
       email: 'sneha.k@gmail.com',
       authProvider: 'google',
+      isAnonymous: false,
       platform: 'android_pwa',
       deviceLabel: 'Android PWA',
+      deviceType: 'Android',
+      browser: 'Chrome',
+      isInstalledPWA: true,
+      timezone: 'Asia/Calcutta',
+      language: 'en-IN',
+      phone: '+91 94471 55678',
       createdAt: new Date(now - 5 * 24 * hr).toISOString(),
       lastActiveAt: new Date(now - 29 * min).toISOString(),
       totalSessionsCount: 3,
@@ -1078,8 +1222,15 @@ export const seedDemoAnalyticsData = () => {
       name: 'Demo Guest Visitor',
       email: 'Guest Visitor',
       authProvider: 'guest',
+      isAnonymous: true,
       platform: 'web',
       deviceLabel: 'iOS Safari',
+      deviceType: 'iOS',
+      browser: 'Safari',
+      isInstalledPWA: false,
+      timezone: 'Asia/Calcutta',
+      language: 'en-IN',
+      phone: '',
       createdAt: new Date(now - 1 * 24 * hr).toISOString(),
       lastActiveAt: new Date(now - 45 * min).toISOString(),
       totalSessionsCount: 2,
@@ -1363,6 +1514,8 @@ export const exportAdminCsvReport = (users = [], logs = [], metrics = {}) => {
   lines.push('REPKRAFT ADMIN ANALYTICS REPORT');
   lines.push(`Generated At,${escapeCsv(new Date().toISOString())}`);
   lines.push(`Total Users,${metrics.totalUsers ?? users.length}`);
+  lines.push(`Guest Users,${metrics.guestUsers ?? 0}`);
+  lines.push(`PWA Installs,${metrics.pwaInstallCount ?? 0}`);
   lines.push(`Daily Active Users (Today),${metrics.dauToday ?? 0}`);
   lines.push(`Active Last 7 Days,${metrics.activeLast7Days ?? 0}`);
   lines.push(`Total Workouts Completed,${metrics.totalWorkouts ?? 0}`);
@@ -1371,15 +1524,21 @@ export const exportAdminCsvReport = (users = [], logs = [], metrics = {}) => {
   lines.push('');
 
   lines.push('USER DIRECTORY');
-  lines.push('UID,Name,Email,Auth Provider,Platform,Workouts Completed,Cardio Logs,Food Logs,Sessions,Last Active');
+  lines.push('UID,Name,Email,Phone,Auth Provider,Device Type,Browser,Installed PWA,Platform,Timezone,Language,Workouts Completed,Cardio Logs,Food Logs,Sessions,Last Active');
   users.forEach((u) => {
     lines.push(
       [
         escapeCsv(u.uid),
         escapeCsv(u.name),
         escapeCsv(u.email),
+        escapeCsv(u.phone || 'Not provided'),
         escapeCsv(u.authProvider),
+        escapeCsv(normalizeDeviceType(u)),
+        escapeCsv(u.browser || ''),
+        Boolean(u.isInstalledPWA),
         escapeCsv(u.platform),
+        escapeCsv(u.timezone || ''),
+        escapeCsv(u.language || ''),
         u.workoutsCompleted || 0,
         u.cardioLoggedCount || 0,
         u.foodLoggedCount || 0,

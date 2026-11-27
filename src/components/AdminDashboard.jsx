@@ -21,7 +21,10 @@ import {
   AlertTriangle,
   Wifi,
   CheckCircle2,
-  Heart
+  Heart,
+  Phone,
+  Monitor,
+  UserCheck
 } from 'lucide-react';
 import {
   fetchAdminAnalytics,
@@ -82,11 +85,23 @@ const formatActivitySentence = (evt) => {
       return `${actor} browsed ${d.surface || 'Exercise Library'}`;
     case 'user_login':
       return `${actor} signed in via ${(d.authProvider || evt.authProvider || 'web').toUpperCase()}`;
+    case 'pwa_installed':
+      return `${actor} installed RepKraft on ${d.deviceType || evt.deviceLabel || 'their device'} (${d.browser || 'PWA'})`;
     case 'app_visit':
       return `${actor} opened RepKraft on ${evt.deviceLabel || (evt.platform === 'android_pwa' ? 'Android PWA' : 'Web')}`;
     default:
       return `${actor} triggered ${evt.eventType}`;
   }
+};
+
+const resolveRowDeviceType = (u) => {
+  if (u?.deviceType === 'Android' || u?.deviceType === 'iOS' || u?.deviceType === 'Desktop') {
+    return u.deviceType;
+  }
+  const label = String(u?.deviceLabel || '').toLowerCase();
+  if (u?.platform === 'android_pwa' || label.includes('android')) return 'Android';
+  if (label.includes('ios') || label.includes('iphone') || label.includes('ipad')) return 'iOS';
+  return 'Desktop';
 };
 
 export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, onBackToApp }) {
@@ -289,10 +304,14 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return users.filter((u) => {
+      const devType = resolveRowDeviceType(u);
       const matchQuery =
         !q ||
         (u.name || '').toLowerCase().includes(q) ||
         (u.email || '').toLowerCase().includes(q) ||
+        (u.phone || '').toLowerCase().includes(q) ||
+        (u.browser || '').toLowerCase().includes(q) ||
+        devType.toLowerCase().includes(q) ||
         (u.uid || '').toLowerCase().includes(q);
       if (!matchQuery) return false;
 
@@ -303,10 +322,14 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
           return u.authProvider === 'email';
         case 'Guest':
           return u.authProvider === 'guest';
-        case 'Web':
-          return u.platform !== 'android_pwa';
-        case 'Android PWA':
-          return u.platform === 'android_pwa';
+        case 'PWA Installed':
+          return Boolean(u.isInstalledPWA || u.platform === 'android_pwa');
+        case 'Android':
+          return devType === 'Android';
+        case 'iOS':
+          return devType === 'iOS';
+        case 'Desktop':
+          return devType === 'Desktop';
         default:
           return true;
       }
@@ -698,7 +721,7 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
         )}
 
         {/* 2. TOP KPI SUMMARY CARDS */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {/* KPI 1: Total Users */}
           <div className="repkraft-card rounded-2xl p-4 flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
@@ -719,13 +742,49 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
               <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-[#A3E635]">
                 Email: {metrics.emailUsers}
               </span>
-              <span className="px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-[#22262E] text-slate-600 dark:text-slate-300">
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400">
                 Guest: {metrics.guestUsers}
               </span>
             </div>
           </div>
 
-          {/* KPI 2: Daily Active Users */}
+          {/* KPI 2: Guest Users Count */}
+          <div className="repkraft-card rounded-2xl p-4 flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400">
+                GUEST USERS
+              </span>
+              <span className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <UserCheck className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black font-mono text-[#0F172A] dark:text-white leading-none">
+              {metrics.guestUsers}
+            </div>
+            <div className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
+              Firebase Anonymous & guest visits
+            </div>
+          </div>
+
+          {/* KPI 3: PWA App Installs */}
+          <div className="repkraft-card rounded-2xl p-4 flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400">
+                PWA INSTALLS
+              </span>
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-[#A3E635] flex items-center justify-center">
+                <Smartphone className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black font-mono text-[#0F172A] dark:text-white leading-none">
+              {metrics.pwaInstallCount}
+            </div>
+            <div className="text-[11px] font-bold text-emerald-700 dark:text-[#A3E635]">
+              Home Screen / standalone • Events: {metrics.pwaInstalledEvents}
+            </div>
+          </div>
+
+          {/* KPI 4: Daily Active Users */}
           <div className="peach-gradient border border-orange-200/70 dark:border-orange-500/20 rounded-2xl p-4 shadow-[0_4px_20px_rgba(15,23,42,0.05)] flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.05em] text-orange-800 dark:text-orange-300">
@@ -743,7 +802,7 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
             </div>
           </div>
 
-          {/* KPI 3: Total Workouts Completed */}
+          {/* KPI 5: Total Workouts Completed */}
           <div className="repkraft-card rounded-2xl p-4 flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400">
@@ -763,13 +822,13 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
             </div>
           </div>
 
-          {/* KPI 4: Cardio & Nutrition Logs */}
+          {/* KPI 6: Cardio & Nutrition Logs */}
           <div className="repkraft-card rounded-2xl p-4 flex flex-col justify-between space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-[0.05em] text-[#64748B] dark:text-slate-400">
                 CARDIO & FOOD
               </span>
-              <span className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-[#A3E635] flex items-center justify-center">
+              <span className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
                 <Heart className="w-4 h-4" />
               </span>
             </div>
@@ -828,15 +887,42 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
             </div>
           </div>
 
-          {/* Platform & Auth Method Breakdown */}
+          {/* Platform & Device Breakdown */}
           <div className="repkraft-card rounded-2xl p-5 space-y-4 flex flex-col justify-between">
             <div className="space-y-4">
               <h2 className="text-sm font-black uppercase tracking-wider text-[#0F172A] dark:text-white flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-blue-600 dark:text-sky-400" />
-                Platform & Auth Split
+                Device & PWA Breakdown
               </h2>
 
-              <div className="space-y-2.5 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-[#A3E635] block">
+                    Android
+                  </span>
+                  <span className="text-lg font-black font-mono text-slate-900 dark:text-white">
+                    {metrics.androidDevices}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20">
+                  <span className="text-[10px] font-black uppercase text-sky-700 dark:text-sky-400 block">
+                    iOS
+                  </span>
+                  <span className="text-lg font-black font-mono text-slate-900 dark:text-white">
+                    {metrics.iosDevices}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                  <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400 block">
+                    Desktop
+                  </span>
+                  <span className="text-lg font-black font-mono text-slate-900 dark:text-white">
+                    {metrics.desktopDevices}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
                 <div className="p-3 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] flex items-center justify-between">
                   <span className="font-bold flex items-center gap-2 text-slate-700 dark:text-slate-200">
                     <Globe className="w-4 h-4 text-blue-500" /> Web Browser
@@ -848,17 +934,17 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
 
                 <div className="p-3 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] flex items-center justify-between">
                   <span className="font-bold flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                    <Smartphone className="w-4 h-4 text-emerald-600 dark:text-[#A3E635]" /> Android / PWA App
+                    <Smartphone className="w-4 h-4 text-emerald-600 dark:text-[#A3E635]" /> Installed PWA / TWA
                   </span>
                   <span className="font-mono font-black text-slate-900 dark:text-white">
-                    {metrics.androidPwaUsers}
+                    {metrics.pwaInstallCount}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/25 text-[11px] text-teal-900 dark:text-teal-200 leading-relaxed font-medium">
-              Ready for Play Store TWA deployment: user visits automatically classify <code>android_pwa</code> vs <code>web</code> platform metrics.
+              Automatic detection logs <code>deviceType</code>, <code>browser</code>, <code>timezone</code>, and standalone Home Screen installs without popup prompts.
             </div>
           </div>
         </div>
@@ -887,7 +973,7 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
 
             {/* Filter Chips */}
             <div className="flex flex-wrap gap-1.5">
-              {['All', 'Google', 'Email', 'Guest', 'Web', 'Android PWA'].map((chip) => (
+              {['All', 'Google', 'Email', 'Guest', 'PWA Installed', 'Android', 'iOS', 'Desktop'].map((chip) => (
                 <button
                   key={chip}
                   type="button"
@@ -910,71 +996,98 @@ export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, 
                   <tr className="border-b border-slate-200 dark:border-[#2D333B] text-[10px] font-black uppercase tracking-wider text-[#64748B] dark:text-slate-400">
                     <th className="py-2 pr-3">Athlete</th>
                     <th className="py-2 px-2">Sign-In</th>
+                    <th className="py-2 px-2">Phone</th>
+                    <th className="py-2 px-2">Device & PWA</th>
                     <th className="py-2 px-2">Workouts</th>
-                    <th className="py-2 px-2">Platform</th>
                     <th className="py-2 pl-2 text-right">Last Active</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-[#2D333B]/60">
-                  {filteredUsers.map((u) => (
-                    <tr key={u.uid} className="hover:bg-slate-50/70 dark:hover:bg-[#22262E]/40 transition-colors">
-                      <td className="py-2.5 pr-3">
-                        <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-xl hero-gradient text-white font-black text-[11px] flex items-center justify-center shrink-0 uppercase">
-                            {(u.name || 'G').charAt(0)}
-                          </span>
-                          <div className="min-w-0">
-                            <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1 truncate max-w-[165px]">
-                              <span className="truncate">{u.name || 'Guest Lifter'}</span>
-                              {u.isDemo && (
-                                <span className="px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase shrink-0">
-                                  Demo
-                                </span>
-                              )}
+                  {filteredUsers.map((u) => {
+                    const devType = resolveRowDeviceType(u);
+                    return (
+                      <tr key={u.uid} className="hover:bg-slate-50/70 dark:hover:bg-[#22262E]/40 transition-colors">
+                        <td className="py-2.5 pr-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 h-7 rounded-xl hero-gradient text-white font-black text-[11px] flex items-center justify-center shrink-0 uppercase">
+                              {(u.name || 'G').charAt(0)}
                             </span>
-                            <span className="text-[10px] text-slate-400 block truncate max-w-[165px]">
-                              {u.email || 'Guest Visitor'}
-                            </span>
+                            <div className="min-w-0">
+                              <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1 truncate max-w-[165px]">
+                                <span className="truncate">{u.name || 'Guest Lifter'}</span>
+                                {u.isDemo && (
+                                  <span className="px-1.5 py-0.2 rounded bg-orange-500/15 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase shrink-0">
+                                    Demo
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[165px]">
+                                {u.email || 'Guest Visitor'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-2">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            u.authProvider === 'google'
-                              ? 'bg-blue-500/15 text-blue-600 dark:text-sky-400'
-                              : u.authProvider === 'email'
-                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-[#A3E635]'
-                              : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                          }`}
-                        >
-                          {u.authProvider || 'guest'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-2 font-mono font-black text-slate-800 dark:text-white">
-                        {u.workoutsCompleted || 0}
-                      </td>
-                      <td className="py-2.5 px-2">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                          {u.platform === 'android_pwa' ? (
-                            <>
-                              <Smartphone className="w-3 h-3 text-emerald-500" /> Mobile
-                            </>
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              u.authProvider === 'google'
+                                ? 'bg-blue-500/15 text-blue-600 dark:text-sky-400'
+                                : u.authProvider === 'email'
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-[#A3E635]'
+                                : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                            }`}
+                          >
+                            {u.authProvider || 'guest'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 whitespace-nowrap">
+                          {u.phone ? (
+                            <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-slate-700 dark:text-slate-200">
+                              <Phone className="w-3 h-3 text-teal-600 dark:text-[#A3E635]" />
+                              {u.phone}
+                            </span>
                           ) : (
-                            <>
-                              <Globe className="w-3 h-3 text-blue-500" /> Web
-                            </>
+                            <span className="text-[11px] text-slate-400 italic">Not provided</span>
                           )}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pl-2 text-right text-[11px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap" title={u.lastActiveAt}>
-                        {formatRelativeTime(u.lastActiveAt)}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                devType === 'Android'
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-[#A3E635]'
+                                  : devType === 'iOS'
+                                  ? 'bg-sky-500/15 text-sky-700 dark:text-sky-400'
+                                  : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
+                              }`}
+                            >
+                              {devType === 'Desktop' ? <Monitor className="w-2.5 h-2.5" /> : <Smartphone className="w-2.5 h-2.5" />}
+                              {devType}
+                            </span>
+                            {u.browser && (
+                              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                {u.browser}
+                              </span>
+                            )}
+                            {u.isInstalledPWA && (
+                              <span className="px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-700 dark:text-[#A3E635] text-[9px] font-black uppercase">
+                                PWA
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2 font-mono font-black text-slate-800 dark:text-white">
+                          {u.workoutsCompleted || 0}
+                        </td>
+                        <td className="py-2.5 pl-2 text-right text-[11px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap" title={u.lastActiveAt}>
+                          {formatRelativeTime(u.lastActiveAt)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-6 text-center text-slate-400 text-xs">
+                      <td colSpan={6} className="py-6 text-center text-slate-400 text-xs">
                         No matching users found. Use the app or click Settings → Load Demo Dataset to preview.
                       </td>
                     </tr>

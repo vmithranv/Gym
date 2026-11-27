@@ -9,13 +9,18 @@ import {
   signInWithRedirect,
   getRedirectResult,
   GoogleAuthProvider,
+  EmailAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut as fbSignOut,
   onAuthStateChanged,
   updateProfile,
-  signInAnonymously
+  signInAnonymously,
+  linkWithPopup,
+  linkWithRedirect,
+  linkWithCredential,
+  signInWithCredential
 } from 'firebase/auth';
 import { loadFromStorage, saveToStorage, getOrCreateDeviceId } from './storage';
 
@@ -103,14 +108,28 @@ const saveLocalAccounts = (accountsMap) => {
   }
 };
 
-const mapFirebaseUser = (fbUser) => ({
-  uid: fbUser.uid,
-  displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'Athlete',
-  email: fbUser.email || '',
-  photoURL: fbUser.photoURL || '',
-  isGuest: false,
-  provider: fbUser.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email'
-});
+const mapFirebaseUser = (fbUser) => {
+  if (fbUser.isAnonymous) {
+    return {
+      uid: fbUser.uid,
+      displayName: fbUser.displayName || 'Guest Lifter',
+      email: null,
+      photoURL: '',
+      isGuest: true,
+      isAnonymous: true,
+      provider: 'guest'
+    };
+  }
+  return {
+    uid: fbUser.uid,
+    displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'Athlete',
+    email: fbUser.email || '',
+    photoURL: fbUser.photoURL || '',
+    isGuest: false,
+    isAnonymous: false,
+    provider: fbUser.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email'
+  };
+};
 
 export const formatAuthError = (err) => {
   if (!err) return 'Authentication failed. Please try again.';
@@ -187,7 +206,7 @@ export const initAuthListener = (onUserSynced) => {
   return unsubscribe;
 };
 
-// 1. Google Sign-In (Firebase Popup with Mobile/PWA Redirect Fallback)
+// 1. Google Sign-In / Guest Link (Firebase Popup with Mobile/PWA Redirect Fallback)
 export const loginWithGoogle = async () => {
   if (!isFirebaseConfigured || !auth || !googleProvider) {
     throw makeAuthError(
@@ -196,7 +215,33 @@ export const loginWithGoogle = async () => {
     );
   }
 
+  const prevAnonUid = auth.currentUser?.isAnonymous ? auth.currentUser.uid : null;
+
   try {
+    if (auth.currentUser?.isAnonymous) {
+      try {
+        const linked = await linkWithPopup(auth.currentUser, googleProvider);
+        const userData = mapFirebaseUser(linked.user);
+        persistUser(userData);
+        return userData;
+      } catch (linkErr) {
+        // If Google account already exists in Firebase, switch to it cleanly and merge guest analytics
+        if (linkErr?.code === 'auth/credential-already-in-use') {
+          const cred = GoogleAuthProvider.credentialFromError(linkErr);
+          if (cred) {
+            const signed = await signInWithCredential(auth, cred);
+            const userData = {
+              ...mapFirebaseUser(signed.user),
+              ...(prevAnonUid ? { mergedFromGuestUid: prevAnonUid } : {})
+            };
+            persistUser(userData);
+            return userData;
+          }
+        }
+        throw linkErr;
+      }
+    }
+
     const result = await signInWithPopup(auth, googleProvider);
     const userData = mapFirebaseUser(result.user);
     persistUser(userData);
@@ -207,7 +252,11 @@ export const loginWithGoogle = async () => {
       err?.code === 'auth/popup-blocked' ||
       err?.code === 'auth/operation-not-supported-in-this-environment'
     ) {
-      await signInWithRedirect(auth, googleProvider);
+      if (auth.currentUser?.isAnonymous) {
+        await linkWithRedirect(auth.currentUser, googleProvider);
+      } else {
+        await signInWithRedirect(auth, googleProvider);
+      }
       return { redirecting: true };
     }
     throw err;
@@ -267,16 +316,26 @@ export const signUpWithEmail = async (name, email, password) => {
   }
 
   if (isFirebaseConfigured && auth) {
-    const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-    if (cleanName && cred.user) {
-      await updateProfile(cred.user, { displayName: cleanName });
+    let fbUser = null;
+    if (auth.currentUser?.isAnonymous) {
+      const emailCred = EmailAuthProvider.credential(cleanEmail, password);
+      const linked = await linkWithCredential(auth.currentUser, emailCred);
+      fbUser = linked.user;
+    } else {
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      fbUser = cred.user;
+    }
+
+    if (cleanName && fbUser) {
+      await updateProfile(fbUser, { displayName: cleanName });
     }
     const userData = {
-      uid: cred.user.uid,
+      uid: fbUser.uid,
       displayName: cleanName || cleanEmail.split('@')[0],
-      email: cred.user.email,
+      email: fbUser.email || cleanEmail,
       photoURL: '',
       isGuest: false,
+      isAnonymous: false,
       provider: 'email'
     };
     persistUser(userData);
@@ -329,6 +388,7 @@ export const loginWithEmail = async (email, password) => {
   }
 
   if (isFirebaseConfigured && auth) {
+    const prevAnonUid = auth.currentUser?.isAnonymous ? auth.currentUser.uid : null;
     const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
     const userData = {
       uid: cred.user.uid,
@@ -336,7 +396,9 @@ export const loginWithEmail = async (email, password) => {
       email: cred.user.email,
       photoURL: cred.user.photoURL || '',
       isGuest: false,
-      provider: 'email'
+      isAnonymous: false,
+      provider: 'email',
+      ...(prevAnonUid && prevAnonUid !== cred.user.uid ? { mergedFromGuestUid: prevAnonUid } : {})
     };
     persistUser(userData);
     return userData;
@@ -439,8 +501,23 @@ export const updateUserDisplayName = async (newName) => {
   return null;
 };
 
-// 6. Continue as Guest Mode (uses single stable device ID to prevent duplicate guest rows)
-export const loginAsGuest = () => {
+// 6. Continue as Guest Mode via Firebase Anonymous Auth (with local device fallback)
+export const loginAsGuest = async () => {
+  if (isFirebaseConfigured && auth) {
+    try {
+      const fbUser = auth.currentUser?.isAnonymous
+        ? auth.currentUser
+        : (await signInAnonymously(auth)).user;
+      if (fbUser) {
+        const guestUser = mapFirebaseUser(fbUser);
+        persistUser(guestUser);
+        return guestUser;
+      }
+    } catch (err) {
+      console.warn('Firebase Anonymous Auth fallback to local guest:', err?.code || err?.message);
+    }
+  }
+
   const deviceId = getOrCreateDeviceId();
   const guestUser = {
     uid: deviceId,
@@ -448,15 +525,10 @@ export const loginAsGuest = () => {
     email: null,
     photoURL: '',
     isGuest: true,
+    isAnonymous: false,
     provider: 'guest'
   };
   persistUser(guestUser);
-
-  // Best-effort anonymous Firebase session when Firebase is enabled so Firestore request.auth rules can pass
-  if (isFirebaseConfigured && auth && !auth.currentUser) {
-    signInAnonymously(auth).catch(() => {});
-  }
-
   return guestUser;
 };
 

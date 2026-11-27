@@ -25,9 +25,11 @@ import AuthModal from './components/AuthModal';
 import AdminDashboard from './components/AdminDashboard';
 import { getStoredUser, logoutUser, persistUser, initAuthListener } from './utils/authService';
 import {
+  getClientEnvironmentMetadata,
   logAnalyticsEvent,
   mergeGuestIntoUserAnalytics,
-  reconcileDeviceAnalytics
+  reconcileDeviceAnalytics,
+  upsertAnalyticsUser
 } from './utils/analyticsService';
 import { computeWorkoutVolumeKg, toLocalDateStr } from './utils/storage';
 import { Dumbbell, Sun, Moon, LogIn } from 'lucide-react';
@@ -68,24 +70,43 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(() => !getStoredUser() && !isAdminRoutePath());
   const [isUpgradeAuth, setIsUpgradeAuth] = useState(false);
 
-  // Track initial app visit on launch (only on main app with active session, never logging /admin visits as app users)
+  // Track initial app visit on launch & detect Home Screen PWA installations (`appinstalled`)
   useEffect(() => {
     const existing = getStoredUser();
     reconcileDeviceAnalytics(existing);
     if (!isAdminRoutePath() && existing) {
       logAnalyticsEvent('app_visit', { route: window.location.pathname }, existing);
     }
+
+    const handleAppInstalled = () => {
+      if (isAdminRoutePath()) return;
+      const activeUser = getStoredUser();
+      const env = getClientEnvironmentMetadata();
+      if (activeUser) {
+        upsertAnalyticsUser(activeUser, { isInstalledPWA: true });
+      }
+      logAnalyticsEvent(
+        'pwa_installed',
+        { deviceType: env.deviceType, browser: env.browser },
+        activeUser
+      );
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => window.removeEventListener('appinstalled', handleAppInstalled);
   }, []);
 
   // Sync Firebase OAuth redirects & active Firebase auth state cleanly on startup
   useEffect(() => {
     const unsubscribe = initAuthListener((syncedUser) => {
       if (syncedUser) {
-        mergeGuestIntoUserAnalytics(syncedUser);
-        setCurrentUser(syncedUser);
+        const { mergedFromGuestUid, ...cleanUser } = syncedUser;
+        mergeGuestIntoUserAnalytics(cleanUser, mergedFromGuestUid);
+        setCurrentUser(cleanUser);
+        persistUser(cleanUser);
         setShowAuthModal(false);
         setIsUpgradeAuth(false);
-        logAnalyticsEvent('user_login', { authProvider: syncedUser.provider }, syncedUser);
+        logAnalyticsEvent('user_login', { authProvider: cleanUser.provider }, cleanUser);
       }
     });
     return () => {
@@ -94,17 +115,18 @@ export default function App() {
   }, []);
 
   const handleAuthSuccess = (user) => {
-    if (user && !user.isGuest) {
-      mergeGuestIntoUserAnalytics(user);
+    const { mergedFromGuestUid, ...cleanUser } = user || {};
+    if (cleanUser && !cleanUser.isGuest) {
+      mergeGuestIntoUserAnalytics(cleanUser, mergedFromGuestUid);
     }
-    setCurrentUser(user);
-    persistUser(user);
+    setCurrentUser(cleanUser);
+    persistUser(cleanUser);
     setShowAuthModal(false);
     setIsUpgradeAuth(false);
     logAnalyticsEvent(
       'user_login',
-      { authProvider: user?.isGuest ? 'guest' : user?.provider || 'email' },
-      user
+      { authProvider: cleanUser?.isGuest ? 'guest' : cleanUser?.provider || 'email' },
+      cleanUser
     );
   };
 

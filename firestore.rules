@@ -9,17 +9,24 @@ rules_version = '2';
 //
 // Collection: users
 // Document ID: {userId}
-//   - Firebase Auth UID for signed-in Google/Email users
+//   - Firebase Auth UID for signed-in Google/Email or Anonymous users
 //   - Device/guest ID matching `^dev-[0-9]+-[a-z0-9]+$` or `^guest-.*`
-//     (length 5..128) for guest telemetry sessions
+//     (length 5..128) for local guest telemetry sessions
 // Written via: `setDoc(doc(db, 'users', identity.uid), payload, { merge: true })`
 // Fields:
 //   - uid: string (required, immutable, must equal userId, 1..128 chars)
 //   - name: string (required, 1..120 chars)
 //   - email: string (required, <= 254 chars; valid email or '' when authProvider != 'guest')
 //   - authProvider: string (required, enum: ['google', 'email', 'guest'])
+//   - isAnonymous: bool (optional; false when authProvider != 'guest')
 //   - platform: string (required, enum: ['web', 'android_pwa'])
 //   - deviceLabel: string (required, 1..64 chars)
+//   - deviceType: string (optional, enum: ['Android', 'iOS', 'Desktop'])
+//   - browser: string (optional, 1..64 chars)
+//   - isInstalledPWA: bool (optional)
+//   - timezone: string (optional, 0..100 chars)
+//   - language: string (optional, 0..32 chars)
+//   - phone: string (optional, 0..32 chars)
 //   - createdAt: string (required, ISO-8601 date string, 20..40 chars; immutable on guest update)
 //   - lastActiveAt: string (required, ISO-8601 date string, 20..40 chars)
 //   - lastActiveServer: timestamp (required, must equal request.time via serverTimestamp())
@@ -35,17 +42,17 @@ rules_version = '2';
 // Append-only telemetry for app users; read/update/delete restricted to verified Admin.
 // Fields:
 //   - id: string (required, immutable, 4..100 chars)
-//   - eventType: string (required, enum: ['app_visit', 'user_login', 'workout_started',
-//       'workout_completed', 'cardio_logged', 'food_logged', 'exercise_library_viewed',
-//       'ai_coach_asked', 'reel_link_saved'])
+//   - eventType: string (required, enum: ['app_visit', 'user_login', 'pwa_installed',
+//       'workout_started', 'workout_completed', 'cardio_logged', 'food_logged',
+//       'exercise_library_viewed', 'ai_coach_asked', 'reel_link_saved'])
 //   - uid: string (required, immutable, 1..128 chars; matches request.auth.uid for non-guest)
 //   - userName: string (required, 1..120 chars)
 //   - userEmail: string (required, <= 254 chars; valid email or '' when authProvider != 'guest')
 //   - authProvider: string (required, enum: ['google', 'email', 'guest'])
 //   - platform: string (required, enum: ['web', 'android_pwa'])
 //   - deviceLabel: string (required, 1..64 chars)
-//   - details: map (required, <= 8 keys, strict key whitelist, strings <= 200 chars,
-//       numbers 0..10000000)
+//   - details: map (required, <= 8 keys, strict key whitelist including deviceType <= 32 chars
+//       and browser <= 64 chars, strings <= 200 chars, numbers 0..10000000)
 //   - timestamp: number (required, > 0 && <= 9999999999999)
 //   - createdAt: string (required, immutable, ISO-8601 date string, 20..40 chars)
 //   - isDemo: bool (required, must be false)
@@ -194,8 +201,15 @@ service cloud.firestore {
         'name',
         'email',
         'authProvider',
+        'isAnonymous',
         'platform',
         'deviceLabel',
+        'deviceType',
+        'browser',
+        'isInstalledPWA',
+        'timezone',
+        'language',
+        'phone',
         'createdAt',
         'lastActiveAt',
         'lastActiveServer',
@@ -212,10 +226,17 @@ service cloud.firestore {
         && data.uid == userId
         && validStringLength(data.name, 1, 120)
         && data.authProvider in ['google', 'email', 'guest']
+        && (!('isAnonymous' in data) || (data.isAnonymous is bool && (data.authProvider == 'guest' || data.isAnonymous == false)))
         && validStringLength(data.email, 0, 254)
         && (data.authProvider == 'guest' || data.email == '' || isValidEmail(data.email))
         && data.platform in ['web', 'android_pwa']
         && validStringLength(data.deviceLabel, 1, 64)
+        && (!('deviceType' in data) || data.deviceType in ['Android', 'iOS', 'Desktop'])
+        && (!('browser' in data) || validStringLength(data.browser, 1, 64))
+        && (!('isInstalledPWA' in data) || data.isInstalledPWA is bool)
+        && (!('timezone' in data) || validStringLength(data.timezone, 0, 100))
+        && (!('language' in data) || validStringLength(data.language, 0, 32))
+        && (!('phone' in data) || validStringLength(data.phone, 0, 32))
         && isValidDateString(data.createdAt)
         && isValidDateString(data.lastActiveAt)
         && data.lastActiveServer is timestamp
@@ -283,7 +304,9 @@ service cloud.firestore {
         'slot',
         'question',
         'exerciseName',
-        'platform'
+        'platform',
+        'deviceType',
+        'browser'
       ];
       return details is map
         && details.size() <= 8
@@ -303,7 +326,9 @@ service cloud.firestore {
         && isValidOptionalDetailString(details, 'slot', 100)
         && isValidOptionalDetailString(details, 'question', 200)
         && isValidOptionalDetailString(details, 'exerciseName', 200)
-        && isValidOptionalDetailString(details, 'platform', 64);
+        && isValidOptionalDetailString(details, 'platform', 64)
+        && isValidOptionalDetailString(details, 'deviceType', 32)
+        && isValidOptionalDetailString(details, 'browser', 64);
     }
 
     function isValidActivityLog(data) {
@@ -325,6 +350,7 @@ service cloud.firestore {
       let validEventTypes = [
         'app_visit',
         'user_login',
+        'pwa_installed',
         'workout_started',
         'workout_completed',
         'cardio_logged',

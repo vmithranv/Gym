@@ -142,9 +142,18 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
   };
 
   // Guest Mode Handler
-  const handleGuest = () => {
-    const guestUser = loginAsGuest();
-    onAuthSuccess(guestUser);
+  const handleGuest = async () => {
+    clearMessages();
+    setLoading(true);
+    try {
+      const guestUser = await loginAsGuest();
+      onAuthSuccess(guestUser);
+    } catch (err) {
+      console.error('Guest sign-in error:', err);
+      setErrorMsg(formatAuthError(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -458,9 +467,10 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
               <button
                 type="button"
                 onClick={handleGuest}
-                className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-[#A3E635] py-1 transition-colors cursor-pointer"
+                disabled={loading}
+                className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-[#A3E635] py-1 transition-colors cursor-pointer disabled:opacity-60"
               >
-                Skip for now — <strong>Continue as Guest</strong>
+                {loading ? 'Starting Guest Session...' : <>Skip for now — <strong>Continue as Guest</strong></>}
               </button>
               <span className="block text-[10px] text-slate-400 mt-0.5">
                 All records stay stored safely in your phone's browser.
