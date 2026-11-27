@@ -22,8 +22,8 @@ import ProfileTab from './components/ProfileTab';
 import ExerciseFormModal from './components/ExerciseFormModal';
 import FloatingAICoach from './components/FloatingAICoach';
 import AuthModal from './components/AuthModal';
-import { getStoredUser, logoutUser, persistUser } from './utils/authService';
-import { Dumbbell, Sun, Moon, Sparkles, User as UserIcon } from 'lucide-react';
+import { getStoredUser, logoutUser, persistUser, initAuthListener } from './utils/authService';
+import { Dumbbell, Sun, Moon, LogIn } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -32,6 +32,20 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [showAuthModal, setShowAuthModal] = useState(() => !getStoredUser());
   const [isUpgradeAuth, setIsUpgradeAuth] = useState(false);
+
+  // Sync Firebase OAuth redirects & active Firebase auth state cleanly on startup
+  useEffect(() => {
+    const unsubscribe = initAuthListener((syncedUser) => {
+      if (syncedUser) {
+        setCurrentUser(syncedUser);
+        setShowAuthModal(false);
+        setIsUpgradeAuth(false);
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
@@ -216,8 +230,32 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right Header Actions: Theme Toggle & Storage Status */}
+        {/* Right Header Actions: Account Status Pill & Theme Toggle */}
         <div className="flex items-center gap-2">
+          {(!currentUser || currentUser.isGuest) ? (
+            <button
+              onClick={handleOpenUpgradeAuth}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="Sign In or Create Account"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('profile')}
+              className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full bg-teal-50 hover:bg-teal-100 dark:bg-[#181B20] dark:hover:bg-[#22262E] border border-teal-200 dark:border-[#2D333B] text-xs font-bold text-teal-800 dark:text-[#A3E635] transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="View Profile"
+            >
+              <span className="w-5 h-5 rounded-full hero-gradient text-white text-[10px] font-black flex items-center justify-center uppercase">
+                {(currentUser.displayName || currentUser.email || 'A').charAt(0)}
+              </span>
+              <span className="text-[11px] max-w-[74px] truncate">
+                {(currentUser.displayName || 'Athlete').split(' ')[0]}
+              </span>
+            </button>
+          )}
+
           {/* Theme Switcher Button */}
           <button
             onClick={toggleTheme}
@@ -248,6 +286,7 @@ export default function App() {
             weightHistory={weightHistory}
             onAddBodyWeight={handleAddBodyWeight}
             onNavigateToTab={setActiveTab}
+            currentUser={currentUser}
             todayRoutine={routines.find((r) => r.dayOfWeek === new Date().getDay()) || routines[0]}
             todayDayName={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()]}
             isRestDay={new Date().getDay() === 0}
@@ -305,7 +344,9 @@ export default function App() {
 
         {activeTab === 'profile' && (
           <ProfileTab
+            key={currentUser?.uid || 'guest'}
             currentUser={currentUser}
+            onUserUpdated={setCurrentUser}
             onLogout={handleLogout}
             onOpenUpgradeAuth={handleOpenUpgradeAuth}
             isDark={isDark}

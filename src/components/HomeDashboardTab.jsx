@@ -26,8 +26,13 @@ export default function HomeDashboardTab({
   onStartTodayWorkout,
   todayRoutine,
   todayDayName,
-  isRestDay
+  isRestDay,
+  currentUser
 }) {
+  const firstName =
+    currentUser && !currentUser.isGuest && currentUser.displayName
+      ? currentUser.displayName.split(' ')[0]
+      : 'Athlete';
   const [weightInput, setWeightInput] = useState(
     weightHistory.length > 0 ? String(weightHistory[0].weight) : '65'
   );
@@ -147,7 +152,7 @@ export default function HomeDashboardTab({
               <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> RepKraft Dashboard
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
-              {getGreeting()}, Athlete! 👋
+              {getGreeting()}, {firstName}! 👋
             </h2>
             <p className="text-blue-100 text-xs sm:text-sm font-medium mt-1">
               "Master your routine. Consistency is key!"

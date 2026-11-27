@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Check, Plus, Trash2, Award, History, Dumbbell, PlayCircle, Timer } from 'lucide-react';
+import { Check, Plus, Trash2, Award, History, Dumbbell, PlayCircle, Timer, Bookmark, ExternalLink } from 'lucide-react';
 import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
+import { useSavedReels } from '../utils/reelStorage';
 import ExerciseAnimation from './ExerciseAnimation';
 
 export default function ExerciseCard({
@@ -22,6 +23,10 @@ export default function ExerciseCard({
           { setNumber: 3, weight: previousRecord?.weight || 60, reps: previousRecord?.reps || 8, completed: false, isPr: false }
         ]
   );
+
+  const { getForExercise } = useSavedReels();
+  const savedReels = getForExercise(exercise.name);
+  const [showSavedReels, setShowSavedReels] = useState(false);
 
   const muscleGroup = exercise.muscleGroup || getExerciseMuscleGroup(exercise.name);
   const muscleStyle = MUSCLE_GROUP_CONFIG[muscleGroup] || MUSCLE_GROUP_CONFIG.Other;
@@ -113,6 +118,7 @@ export default function ExerciseCard({
 
               {/* Watch Form Guide Button */}
               <button
+                type="button"
                 onClick={() => onOpenFormGuide(exercise)}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:bg-[#A3E635]/15 dark:hover:bg-[#A3E635]/25 dark:text-[#A3E635] border border-blue-500/20 dark:border-[#A3E635]/30 transition-all active:scale-95 cursor-pointer"
                 title="Watch video & cues"
@@ -120,6 +126,18 @@ export default function ExerciseCard({
                 <PlayCircle className="w-3 h-3" />
                 <span>Form</span>
               </button>
+
+              {savedReels.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowSavedReels((prev) => !prev)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-600 dark:text-pink-400 border border-pink-500/30 transition-all active:scale-95 cursor-pointer"
+                  title="Open saved reels for this exercise"
+                >
+                  <Bookmark className="w-3 h-3" />
+                  <span>{savedReels.length} Reel{savedReels.length > 1 ? 's' : ''}</span>
+                </button>
+              )}
 
               {hasPrInCurrentSession && (
                 <span className="animate-pr-pop inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-rose-500 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs">
@@ -158,6 +176,7 @@ export default function ExerciseCard({
 
         {onRemoveExercise && (
           <button
+            type="button"
             onClick={() => onRemoveExercise(exercise.id)}
             className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1.5 rounded-lg active:scale-90 transition-all shrink-0"
             title="Remove exercise"
@@ -166,6 +185,30 @@ export default function ExerciseCard({
           </button>
         )}
       </div>
+
+      {/* Quick Inline Saved Reels Drawer during Workout */}
+      {showSavedReels && savedReels.length > 0 && (
+        <div className="mb-3 p-2.5 rounded-2xl bg-pink-50/70 dark:bg-pink-950/20 border border-pink-200/70 dark:border-pink-800/40 space-y-1.5 animate-in fade-in">
+          <div className="text-[10px] font-black uppercase tracking-wider text-pink-600 dark:text-pink-400 flex items-center gap-1">
+            <Bookmark className="w-3 h-3" /> Saved Reference Reels
+          </div>
+          {savedReels.map((link) => (
+            <div key={link.id} className="flex items-center justify-between gap-2 text-xs bg-white dark:bg-[#181B20] px-2.5 py-1.5 rounded-xl border border-pink-100 dark:border-[#2D333B]">
+              <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                {link.title}
+              </span>
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2 py-0.5 rounded-lg bg-pink-600 text-white font-bold text-[10px] flex items-center gap-1 shrink-0"
+              >
+                Open <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Sets Table Header */}
       <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1 text-center">

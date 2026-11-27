@@ -1,15 +1,18 @@
 import React from 'react';
-import { X, Sparkles, Layers, Activity, Video, ExternalLink } from 'lucide-react';
+import { X, Sparkles, Layers, Activity, Video, ExternalLink, Bookmark } from 'lucide-react';
 import { EXERCISE_GUIDES, MUSCLE_GROUP_CONFIG, extractYoutubeId, getExerciseMuscleGroup } from '../utils/exerciseData';
 import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
+import { normalizeReelUrl, useSavedReels } from '../utils/reelStorage';
 import AnatomicalMuscleVisual from './AnatomicalMuscleVisual';
 import ExerciseAnimation from './ExerciseAnimation';
 import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 
 export default function ExerciseFormModal({ exercise, onClose }) {
+  const { getForExercise } = useSavedReels();
   if (!exercise) return null;
 
   const exerciseName = typeof exercise === 'string' ? exercise : (exercise?.name || 'Exercise');
+  const savedReels = getForExercise(exerciseName);
   const muscleGroup = exercise?.muscleGroup || getExerciseMuscleGroup(exerciseName) || 'Full Body';
   const muscleStyle = MUSCLE_GROUP_CONFIG[muscleGroup] || MUSCLE_GROUP_CONFIG.Other || {
     badgeBg: 'bg-blue-500/10',
@@ -22,6 +25,10 @@ export default function ExerciseFormModal({ exercise, onClose }) {
   const guide = EXERCISE_GUIDES[exerciseName] || {};
 
   const customYoutubeId = exercise?.customVideoUrl ? extractYoutubeId(exercise.customVideoUrl) : '';
+  const customNonYoutubeUrl =
+    exercise?.customVideoUrl && !customYoutubeId
+      ? normalizeReelUrl(exercise.customVideoUrl)
+      : null;
   const videoId = customYoutubeId || beginner?.youtubeId || guide?.youtubeId;
 
   const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
@@ -60,8 +67,13 @@ export default function ExerciseFormModal({ exercise, onClose }) {
                 {muscleGroup}
               </span>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Visual Muscle Guide & YouTube Video
+                Visual Muscle Guide & Video
               </span>
+              {savedReels.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-pink-500/15 text-pink-600 dark:text-pink-400 border border-pink-500/30">
+                  <Bookmark className="w-2.5 h-2.5" /> {savedReels.length} Saved
+                </span>
+              )}
             </div>
             <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
               {exerciseName}
@@ -107,6 +119,23 @@ export default function ExerciseFormModal({ exercise, onClose }) {
               </div>
             )}
           </div>
+
+          {/* Custom Saved Video / Reel Link attached directly to Routine Exercise */}
+          {customNonYoutubeUrl?.ok && (
+            <div className="flex items-center justify-between gap-2 text-xs bg-pink-50/80 dark:bg-pink-950/30 p-3 rounded-2xl border border-pink-200 dark:border-pink-800/40">
+              <span className="font-bold text-pink-700 dark:text-pink-300 flex items-center gap-1.5 truncate">
+                <Bookmark className="w-4 h-4 shrink-0" /> Custom Routine Video / Reel Saved
+              </span>
+              <a
+                href={customNonYoutubeUrl.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 rounded-xl bg-pink-600 text-white font-bold text-[11px] flex items-center gap-1 shrink-0"
+              >
+                Open Link <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
 
           {/* Quick Fallback / Alternative Angles Link */}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#22262E]/50 p-3 rounded-2xl border border-slate-100 dark:border-[#2D333B]">

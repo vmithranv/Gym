@@ -650,7 +650,7 @@ export default function WorkoutTab({
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          SECTION 3 (BOTTOM): IRONPULSE SESSION SUMMARY & CONTROLS
+          SECTION 3 (BOTTOM): REPKRAFT SESSION SUMMARY & CONTROLS
           Placed at bottom right above bottom navigation bar
          ───────────────────────────────────────────────────────────── */}
       {activeSession && (
@@ -659,7 +659,7 @@ export default function WorkoutTab({
             <div>
               <span className="text-[10px] font-black text-emerald-600 dark:text-[#A3E635] tracking-widest uppercase flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-[#A3E635] animate-ping" />
-                IRONPULSE ACTIVE SESSION
+                REPKRAFT ACTIVE SESSION
               </span>
               <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
                 {activeSession.name}
@@ -757,11 +757,12 @@ export default function WorkoutTab({
 
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
-                  Custom YouTube Video Link (Optional)
+                  Custom YouTube or Reel Link (Optional)
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
+                  type="text"
+                  inputMode="url"
+                  placeholder="https://youtu.be/... or instagram.com/reel/..."
                   value={customVideoUrl}
                   onChange={(e) => setCustomVideoUrl(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono"

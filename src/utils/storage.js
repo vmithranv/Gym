@@ -190,8 +190,10 @@ export const loadFromStorage = (key, fallback) => {
 export const saveToStorage = (key, data) => {
   try {
     localStorage.setItem(`ironpulse_${key}`, JSON.stringify(data));
+    return true;
   } catch (e) {
     console.error(`Failed to save ${key} to storage:`, e);
+    return false;
   }
 };
 

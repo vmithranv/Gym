@@ -419,8 +419,9 @@ export default function RoutinesTab({
                   </span>
                   <div className="relative">
                     <input
-                      type="url"
-                      placeholder="https://youtu.be/... (or YouTube URL)"
+                      type="text"
+                      inputMode="url"
+                      placeholder="https://youtu.be/... (or YouTube / Reel URL)"
                       value={newExVideoUrl}
                       onChange={(e) => setNewExVideoUrl(e.target.value)}
                       className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono"

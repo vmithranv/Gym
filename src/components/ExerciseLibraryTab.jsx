@@ -1,22 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Filter,
   Plus,
   PlayCircle,
   Layers,
   Sparkles,
-  Dumbbell,
+  Bookmark,
+  ExternalLink,
+  Trash2,
+  Video,
   Check,
-  ChevronRight,
+  AlertCircle,
   X
 } from 'lucide-react';
-import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
-import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
+import { MUSCLE_GROUP_CONFIG } from '../utils/exerciseData';
 import SavedReelBookmarkBox from './SavedReelBookmarkBox';
-import AnatomicalMuscleVisual from './AnatomicalMuscleVisual';
 import ExerciseAnimation from './ExerciseAnimation';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
+import { useSavedReels, GENERAL_REELS_KEY } from '../utils/reelStorage';
 
 // 40+ Pre-populated Gym Exercises categorized by Body & Equipment
 export const ALL_LIBRARY_EXERCISES = [
@@ -81,6 +82,15 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBodyFilter, setSelectedBodyFilter] = useState('All');
   const [selectedEquipFilter, setSelectedEquipFilter] = useState('All');
+  const [showReelsVault, setShowReelsVault] = useState(false);
+
+  // Centralized Saved Reels state synced across all components
+  const { allReels, totalReelsCount, addReel, deleteReel } = useSavedReels();
+  const [vaultUrl, setVaultUrl] = useState('');
+  const [vaultTitle, setVaultTitle] = useState('');
+  const [vaultExercise, setVaultExercise] = useState(GENERAL_REELS_KEY);
+  const [vaultError, setVaultError] = useState('');
+  const [vaultSavedNotice, setVaultSavedNotice] = useState('');
 
   // Custom User Exercises
   const [customExercises, setCustomExercises] = useState(() =>
@@ -129,12 +139,40 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
     setShowAddModal(false);
   };
 
+  const handleSaveVaultReel = (e) => {
+    e.preventDefault();
+    setVaultError('');
+    setVaultSavedNotice('');
+
+    const res = addReel(vaultExercise, vaultUrl, vaultTitle);
+    if (!res.ok) {
+      setVaultError(res.error || 'Could not save link.');
+      return;
+    }
+
+    setVaultUrl('');
+    setVaultTitle('');
+    setVaultSavedNotice('Saved for future reference!');
+    setTimeout(() => setVaultSavedNotice(''), 2500);
+  };
+
+  const filteredVaultReels = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return allReels;
+    return allReels.filter(
+      (r) =>
+        (r.title || '').toLowerCase().includes(q) ||
+        (r.exerciseName || '').toLowerCase().includes(q) ||
+        (r.url || '').toLowerCase().includes(q)
+    );
+  }, [allReels, searchQuery]);
+
   return (
     <div className="space-y-4 pb-32 animate-in fade-in duration-200">
       {/* Signature Hero Header Banner */}
       <div className="relative overflow-hidden rounded-2xl hero-gradient text-white p-5 shadow-xl border border-teal-500/20">
         <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex items-start justify-between">
+        <div className="relative z-10 flex items-start justify-between gap-2">
           <div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider hero-pill-badge text-white mb-2 shadow-xs">
               <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> Complete Database
@@ -147,10 +185,43 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
               Search, filter by muscle or equipment, check 3D anatomical guides, and save your favourite video form tips.
             </p>
           </div>
-          <span className="hero-pill-badge text-white px-3 py-1.5 rounded-xl text-xs font-mono font-bold shrink-0 border border-white/20">
-            {filteredExercises.length} Total
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowReelsVault((prev) => !prev)}
+            className="hero-pill-badge hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-xs font-black shrink-0 border border-white/25 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+          >
+            <Bookmark className="w-3.5 h-3.5 text-pink-300" />
+            <span>{totalReelsCount} Reels</span>
+          </button>
         </div>
+      </div>
+
+      {/* Mode Switcher: Exercise Catalog vs All Saved Reels Vault */}
+      <div className="flex rounded-2xl bg-[#F1F5F9] dark:bg-[#20242C] p-1 border border-slate-200/80 dark:border-[#2D333B]">
+        <button
+          type="button"
+          onClick={() => setShowReelsVault(false)}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            !showReelsVault
+              ? 'bg-white dark:bg-[#181B20] text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Exercises ({filteredExercises.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowReelsVault(true)}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            showReelsVault
+              ? 'bg-white dark:bg-[#181B20] text-pink-600 dark:text-[#A3E635] shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+          }`}
+        >
+          <Bookmark className="w-3.5 h-3.5 text-pink-500" />
+          <span>Saved Reels Vault ({totalReelsCount})</span>
+        </button>
       </div>
 
       {/* Search Input Bar */}
@@ -158,20 +229,154 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
         <input
           type="text"
-          placeholder="Search exercises by name..."
+          placeholder={showReelsVault ? 'Search saved reels by title, exercise, or URL...' : 'Search exercises by name...'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200/80 dark:border-[#2D333B] text-xs font-medium shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         />
         {searchQuery && (
           <button
+            type="button"
             onClick={() => setSearchQuery('')}
-            className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
+            className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </div>
+
+      {showReelsVault ? (
+        /* ─────────────────────────────────────────────────────────────
+           UNIFIED SAVED REELS VAULT FOR FUTURE REFERENCE
+           ───────────────────────────────────────────────────────────── */
+        <div className="space-y-4">
+          {/* Quick Add Any Reel Form */}
+          <form
+            onSubmit={handleSaveVaultReel}
+            noValidate
+            className="repkraft-card rounded-2xl p-4 space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
+                <Video className="w-4 h-4 text-pink-500" /> Save Reel Link for Future Reference
+              </h3>
+              {vaultSavedNotice && (
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-[#A3E635] flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" /> {vaultSavedNotice}
+                </span>
+              )}
+            </div>
+
+            <input
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="Paste Instagram Reel, YouTube, or Video URL..."
+              value={vaultUrl}
+              onChange={(e) => {
+                setVaultUrl(e.target.value);
+                if (vaultError) setVaultError('');
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono outline-none focus:ring-2 focus:ring-teal-500"
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="text"
+                placeholder="Note / Form Cue (e.g. Elbow angle cue)"
+                value={vaultTitle}
+                onChange={(e) => setVaultTitle(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <select
+                value={vaultExercise}
+                onChange={(e) => setVaultExercise(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-semibold outline-none"
+              >
+                <option value={GENERAL_REELS_KEY}>{GENERAL_REELS_KEY}</option>
+                {allExercises.map((ex) => (
+                  <option key={ex.id} value={ex.name}>
+                    {ex.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {vaultError && (
+              <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {vaultError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" /> Save Reel Bookmark
+            </button>
+          </form>
+
+          {/* Saved Reels List */}
+          {filteredVaultReels.length > 0 ? (
+            <div className="space-y-2.5">
+              {filteredVaultReels.map((item) => (
+                <div
+                  key={`${item.exerciseName}-${item.id}`}
+                  className="repkraft-card rounded-2xl p-3.5 flex items-center justify-between gap-2.5"
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-pink-500/15 text-pink-500 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bookmark className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-[#A3E635] mb-1">
+                        {item.exerciseName}
+                      </span>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                        {item.title}
+                      </h4>
+                      <span className="text-[10px] text-slate-400 truncate block">
+                        {item.url}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs"
+                    >
+                      Open <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => deleteReel(item.exerciseName, item.id)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                      title="Delete reel"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="repkraft-card rounded-2xl p-6 text-center space-y-2">
+              <Bookmark className="w-8 h-8 text-pink-500 mx-auto opacity-70" />
+              <h4 className="font-black text-sm text-slate-800 dark:text-white">
+                No Saved Reels Yet
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                Paste any Instagram Reel or YouTube form video above (or under any exercise card) so you can revisit it quickly during workouts.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
 
       {/* Row 1 Filter: Target Body Muscle */}
       <div className="space-y-1">
@@ -265,6 +470,8 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
           );
         })}
       </div>
+        </>
+      )}
 
       {/* Floating Plus Button to Add Custom Exercise */}
       <button

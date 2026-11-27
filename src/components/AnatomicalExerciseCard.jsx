@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { MUSCLE_GROUP_CONFIG, getExerciseMuscleGroup } from '../utils/exerciseData';
 import { BEGINNER_EXERCISE_GUIDES } from '../utils/beginnerExerciseData';
+import { addSavedReel, isVideoPageUrl } from '../utils/reelStorage';
 import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 
 export default function AnatomicalExerciseCard({
@@ -66,11 +67,17 @@ export default function AnatomicalExerciseCard({
 
   const handleUrlSubmit = (e) => {
     e.preventDefault();
-    if (mediaUrlInput.trim()) {
-      onSaveCustomMedia(exercise.name, mediaUrlInput.trim());
-      setMediaUrlInput('');
-      setShowMediaInput(false);
+    const raw = mediaUrlInput.trim();
+    if (!raw) return;
+
+    if (isVideoPageUrl(raw)) {
+      addSavedReel(exerciseName, raw);
+    } else {
+      onSaveCustomMedia(exercise.name, raw);
+      setImgError(false);
     }
+    setMediaUrlInput('');
+    setShowMediaInput(false);
   };
 
   const displayImage = customMediaUrl || (imgError ? beginnerGuide.fallbackImageUrl : beginnerGuide.imageUrl);
@@ -191,8 +198,9 @@ export default function AnatomicalExerciseCard({
             </span>
             <form onSubmit={handleUrlSubmit} className="flex gap-2">
               <input
-                type="url"
-                placeholder="Paste image/GIF/video link..."
+                type="text"
+                inputMode="url"
+                placeholder="Paste image/GIF/Reel link..."
                 value={mediaUrlInput}
                 onChange={(e) => setMediaUrlInput(e.target.value)}
                 className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-mono"

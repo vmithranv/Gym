@@ -6,18 +6,21 @@ import {
   User,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
-  ShieldCheck,
+  Eye,
+  EyeOff,
+  Info,
   X
 } from 'lucide-react';
 import {
   loginWithGoogle,
+  loginWithLocalGoogleProfile,
   loginWithEmail,
   signUpWithEmail,
   resetPassword,
   loginAsGuest,
-  isFirebaseConfigured
+  isFirebaseConfigured,
+  formatAuthError
 } from '../utils/authService';
 
 export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false }) {
@@ -25,6 +28,14 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // When Firebase isn't configured, clicking Google shows a transparent local Gmail profile prompt
+  const [showLocalGooglePrompt, setShowLocalGooglePrompt] = useState(false);
+  const [googleName, setGoogleName] = useState('');
+  const [googleEmail, setGoogleEmail] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -37,15 +48,37 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
   // Google Sign-In Handler
   const handleGoogleSignIn = async () => {
     clearMessages();
+
+    if (!isFirebaseConfigured) {
+      setShowLocalGooglePrompt((prev) => !prev);
+      return;
+    }
+
     setLoading(true);
     try {
-      const user = await loginWithGoogle();
-      onAuthSuccess(user);
+      const result = await loginWithGoogle();
+      if (result?.redirecting) {
+        setSuccessMsg('Redirecting to Google Sign-In...');
+        return;
+      }
+      onAuthSuccess(result);
     } catch (err) {
       console.error('Google sign-in error:', err);
-      setErrorMsg(err.message || 'Failed to authenticate with Google.');
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Local Gmail Profile Submit (when Firebase env keys are not added yet)
+  const handleLocalGoogleSubmit = (e) => {
+    e.preventDefault();
+    clearMessages();
+    try {
+      const user = loginWithLocalGoogleProfile(googleName, googleEmail);
+      onAuthSuccess(user);
+    } catch (err) {
+      setErrorMsg(formatAuthError(err));
     }
   };
 
@@ -54,13 +87,29 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
     e.preventDefault();
     clearMessages();
 
-    if (!email || !email.includes('@')) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setErrorMsg('Please enter a valid email address.');
       return;
     }
 
-    if (tab !== 'forgot' && (!password || password.length < 6)) {
+    if (tab === 'signup' && !name.trim()) {
+      setErrorMsg('Please enter your name to create your profile.');
+      return;
+    }
+
+    if (tab === 'login' && (!password || password.length < 6)) {
       setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (tab === 'signup' && (!password || password.length < 6)) {
+      setErrorMsg('Please choose a password with at least 6 characters.');
+      return;
+    }
+
+    if (tab === 'forgot' && !isFirebaseConfigured && (!newPassword || newPassword.length < 6)) {
+      setErrorMsg('Enter a new password with at least 6 characters.');
       return;
     }
 
@@ -68,24 +117,25 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
 
     try {
       if (tab === 'login') {
-        const user = await loginWithEmail(email.trim(), password);
+        const user = await loginWithEmail(cleanEmail, password);
         onAuthSuccess(user);
       } else if (tab === 'signup') {
-        const user = await signUpWithEmail(name.trim(), email.trim(), password);
+        const user = await signUpWithEmail(name.trim(), cleanEmail, password);
         onAuthSuccess(user);
       } else if (tab === 'forgot') {
-        await resetPassword(email.trim());
-        setSuccessMsg('Password reset link sent! Check your email inbox.');
+        const res = await resetPassword(cleanEmail, newPassword);
+        if (res.mode === 'firebase') {
+          setSuccessMsg('Password reset link sent! Check your email inbox.');
+        } else {
+          setSuccessMsg('Password updated! You can now log in with your new password.');
+          setPassword('');
+          setNewPassword('');
+          setTab('login');
+        }
       }
     } catch (err) {
       console.error('Email auth error:', err);
-      let userFriendly = err.message || 'Authentication failed. Please check credentials.';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        userFriendly = 'Invalid email or password.';
-      } else if (err.code === 'auth/email-already-in-use') {
-        userFriendly = 'An account already exists with this email address. Try logging in.';
-      }
-      setErrorMsg(userFriendly);
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -99,20 +149,22 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] w-full max-w-md rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col animate-in slide-in-from-bottom duration-300">
-        {/* Header with App Branding */}
-        <div className="p-5 bg-gradient-to-br from-teal-500 via-blue-600 to-indigo-700 text-white relative">
+      <div className="bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] w-full max-w-md rounded-2xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+        {/* Header with RepKraft Signature Hero Gradient */}
+        <div className="p-5 hero-gradient text-white relative">
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 rounded-full hero-pill-badge hover:bg-white/30 text-white transition-all cursor-pointer"
+              aria-label="Close login modal"
             >
               <X className="w-4 h-4" />
             </button>
           )}
 
           <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 text-white flex items-center justify-center shadow-md backdrop-blur-xs">
               <Dumbbell className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
@@ -126,17 +178,27 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
           </div>
 
           <h3 className="text-base font-black text-white mt-3">
-            {isUpgrade ? 'Link Your RepKraft Account' : 'Welcome to RepKraft'}
+            {isUpgrade ? 'Sign In or Create Your Account' : 'Welcome to RepKraft'}
           </h3>
           <p className="text-blue-100 text-xs mt-0.5">
             {isUpgrade
-              ? 'Save and sync your workout records across all your mobile devices.'
-              : 'Log in to sync your 6-day PPL schedule, personal records, and weight progress.'}
+              ? 'Save your personal profile while keeping all logged workouts & saved reels.'
+              : 'Sign in or create an account to track your 6-day PPL schedule, PRs, and saved reels.'}
           </p>
         </div>
 
         {/* Auth Body */}
         <div className="p-5 space-y-4 overflow-y-auto">
+          {/* Transparent Mode Indicator when Cloud Firebase keys aren't configured */}
+          {!isFirebaseConfigured && (
+            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/40 flex items-start gap-2 text-[11px] text-blue-800 dark:text-blue-200">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                Running in <strong>Device Account Mode</strong>: Sign Up & Log In work locally in your browser. Add Firebase keys for cloud Google OAuth.
+              </span>
+            </div>
+          )}
+
           {/* Error / Success Notifications */}
           {errorMsg && (
             <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2 text-xs text-rose-600 dark:text-rose-400">
@@ -154,6 +216,7 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
 
           {/* 1. Google Sign-In Button */}
           <button
+            type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
             className="w-full py-3 px-4 rounded-2xl bg-white dark:bg-[#20242C] text-slate-800 dark:text-white border border-slate-300 dark:border-[#2D333B] hover:bg-slate-50 dark:hover:bg-[#262B34] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-3 shadow-xs active:scale-98 transition-all cursor-pointer"
@@ -177,11 +240,44 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            <span>Continue with Google</span>
+            <span>{isFirebaseConfigured ? 'Continue with Google' : 'Quick Google / Gmail Profile'}</span>
           </button>
 
+          {/* Local Google Profile Prompt (only when Firebase isn't configured) */}
+          {showLocalGooglePrompt && !isFirebaseConfigured && (
+            <form
+              onSubmit={handleLocalGoogleSubmit}
+              noValidate
+              className="p-3.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] space-y-2.5 animate-in fade-in"
+            >
+              <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
+                Firebase OAuth keys are not set on this deployment yet. Enter your name and Gmail below to sign in locally on this device:
+              </p>
+              <input
+                type="text"
+                placeholder="Your Name (e.g. Mithran)"
+                value={googleName}
+                onChange={(e) => setGoogleName(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <input
+                type="email"
+                placeholder="you@gmail.com"
+                value={googleEmail}
+                onChange={(e) => setGoogleEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#181B20] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <button
+                type="submit"
+                className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider cursor-pointer"
+              >
+                Continue as Gmail Profile
+              </button>
+            </form>
+          )}
+
           {/* Divider */}
-          <div className="relative flex items-center justify-center my-3">
+          <div className="relative flex items-center justify-center my-2">
             <div className="border-t border-slate-200 dark:border-[#2D333B] w-full" />
             <span className="bg-white dark:bg-[#181B20] px-3 text-[10px] font-black uppercase text-slate-400 shrink-0">
               or use email
@@ -189,13 +285,14 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
           </div>
 
           {/* Login / Sign Up Tabs */}
-          <div className="flex rounded-2xl bg-slate-100 dark:bg-[#20242C] p-1">
+          <div className="flex rounded-2xl bg-[#F1F5F9] dark:bg-[#20242C] p-1">
             <button
+              type="button"
               onClick={() => {
                 setTab('login');
                 clearMessages();
               }}
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 tab === 'login'
                   ? 'bg-white dark:bg-[#181B20] text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-white'
@@ -204,11 +301,12 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
               Log In
             </button>
             <button
+              type="button"
               onClick={() => {
                 setTab('signup');
                 clearMessages();
               }}
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 tab === 'signup'
                   ? 'bg-white dark:bg-[#181B20] text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-white'
@@ -219,7 +317,7 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
           </div>
 
           {/* Email / Password Form */}
-          <form onSubmit={handleSubmitEmail} className="space-y-3">
+          <form onSubmit={handleSubmitEmail} noValidate className="space-y-3">
             {tab === 'signup' && (
               <div>
                 <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">
@@ -229,11 +327,10 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
-                    required
                     placeholder="e.g. Mithran"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -247,16 +344,17 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="email"
-                  required
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   placeholder="athlete@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
                 />
               </div>
             </div>
 
-            {tab !== 'forgot' && (
+            {tab !== 'forgot' ? (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
@@ -269,7 +367,7 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
                         setTab('forgot');
                         clearMessages();
                       }}
-                      className="text-[10px] font-bold text-teal-600 dark:text-[#A3E635] hover:underline"
+                      className="text-[10px] font-bold text-teal-600 dark:text-[#A3E635] hover:underline cursor-pointer"
                     >
                       Forgot?
                     </button>
@@ -278,34 +376,77 @@ export default function AuthModal({ onAuthSuccess, onClose, isUpgrade = false })
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="At least 6 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
+            ) : (
+              !isFirebaseConfigured && (
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">
+                    Set New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="New password (6+ characters)"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200 dark:border-[#2D333B] text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-blue-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black font-extrabold text-xs uppercase tracking-wider shadow-md hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+              className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold text-xs uppercase tracking-wider shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
             >
-              <span>{loading ? 'Processing...' : tab === 'login' ? 'Log In' : tab === 'signup' ? 'Create Account' : 'Send Reset Link'}</span>
+              <span>
+                {loading
+                  ? 'Processing...'
+                  : tab === 'login'
+                  ? 'Log In'
+                  : tab === 'signup'
+                  ? 'Create Account'
+                  : isFirebaseConfigured
+                  ? 'Send Reset Link'
+                  : 'Update Password'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
           {tab === 'forgot' && (
             <button
+              type="button"
               onClick={() => {
                 setTab('login');
                 clearMessages();
               }}
-              className="w-full text-center text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              className="w-full text-center text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer"
             >
               Back to Log In
             </button>

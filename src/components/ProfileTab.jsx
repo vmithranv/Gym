@@ -2,30 +2,22 @@ import React, { useState } from 'react';
 import {
   User,
   LogOut,
-  Mail,
-  Shield,
   Dumbbell,
-  Scale,
-  Calendar,
-  Clock,
-  Target,
   Sun,
   Moon,
   Download,
   Upload,
   Check,
-  ChevronRight,
-  Flame,
-  Award,
   Sparkles,
-  Link,
-  BellRing
+  Link
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
+import { updateUserDisplayName } from '../utils/authService';
 
 export default function ProfileTab({
   currentUser,
+  onUserUpdated,
   onLogout,
   onOpenUpgradeAuth,
   isDark,
@@ -50,15 +42,53 @@ export default function ProfileTab({
   const [saveNotice, setSaveNotice] = useState(false);
 
   // Handle Save
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     saveToStorage('repkraft_user_profile_data', profile);
+
+    if (profile.displayName?.trim() && currentUser && !currentUser.isGuest) {
+      const updatedUser = await updateUserDisplayName(profile.displayName.trim());
+      if (updatedUser && onUserUpdated) {
+        onUserUpdated(updatedUser);
+      }
+    }
+
     setIsEditing(false);
     setSaveNotice(true);
     try {
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
-    } catch (e) {}
+    } catch {}
     setTimeout(() => setSaveNotice(false), 2500);
+  };
+
+  // Restore / Import Backup JSON file
+  const handleImportData = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result || '{}');
+        if (parsed.profile) {
+          saveToStorage('repkraft_user_profile_data', parsed.profile);
+          setProfile(parsed.profile);
+        }
+        if (Array.isArray(parsed.routines)) saveToStorage('routines', parsed.routines);
+        if (parsed.records) saveToStorage('records', parsed.records);
+        if (parsed.progression) saveToStorage('progression', parsed.progression);
+        if (Array.isArray(parsed.weightHistory)) saveToStorage('weight_history', parsed.weightHistory);
+        if (Array.isArray(parsed.workoutHistory)) saveToStorage('workout_history', parsed.workoutHistory);
+        if (Array.isArray(parsed.cardioLogs)) saveToStorage('cardio_logs', parsed.cardioLogs);
+        if (parsed.savedReelLinks && typeof parsed.savedReelLinks === 'object') {
+          saveToStorage('saved_reel_links', parsed.savedReelLinks);
+        }
+        alert('Backup restored successfully! Refreshing app data...');
+        window.location.reload();
+      } catch {
+        alert('Invalid backup JSON file.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Export / Backup all localStorage data to JSON file
@@ -209,7 +239,12 @@ export default function ProfileTab({
               </span>
             )}
             <button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => {
+                if (!isEditing && currentUser && !currentUser.isGuest && currentUser.displayName) {
+                  setProfile((prev) => ({ ...prev, displayName: currentUser.displayName }));
+                }
+                setIsEditing(!isEditing);
+              }}
               className="text-xs font-bold text-teal-600 dark:text-[#A3E635] hover:underline cursor-pointer"
             >
               {isEditing ? 'Cancel' : 'Edit Details'}
@@ -219,6 +254,19 @@ export default function ProfileTab({
 
         {isEditing ? (
           <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+            <div>
+              <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={profile.displayName}
+                onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-[#F1F5F9] dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] font-bold"
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="font-bold text-slate-600 dark:text-slate-400 block mb-1">
@@ -327,7 +375,7 @@ export default function ProfileTab({
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2.5 rounded-xl bg-teal-600 dark:bg-[#A3E635] text-white dark:text-black font-extrabold uppercase text-xs shadow-md"
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold uppercase text-xs shadow-md cursor-pointer"
               >
                 Save Details
               </button>
@@ -407,13 +455,20 @@ export default function ProfileTab({
               Save your workouts, PRs, and reel bookmarks to an offline file.
             </span>
           </div>
-          <button
-            onClick={handleExportData}
-            className="px-3 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-600 dark:text-[#A3E635] border border-teal-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <label className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#22262E] dark:hover:bg-[#2D333B] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2D333B] font-bold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all">
+              <Upload className="w-3.5 h-3.5" />
+              <span>Restore</span>
+              <input type="file" accept=".json,application/json" onChange={handleImportData} className="hidden" />
+            </label>
+            <button
+              onClick={handleExportData}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
