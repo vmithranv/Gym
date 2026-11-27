@@ -24,12 +24,22 @@ export default function ExerciseFormModal({ exercise, onClose }) {
   const beginner = BEGINNER_EXERCISE_GUIDES[exerciseName] || {};
   const guide = EXERCISE_GUIDES[exerciseName] || {};
 
-  const customYoutubeId = exercise?.customVideoUrl ? extractYoutubeId(exercise.customVideoUrl) : '';
+  const savedYoutubeLink = savedReels.find((r) => extractYoutubeId(r?.url));
+  const customYoutubeId = exercise?.customVideoUrl
+    ? extractYoutubeId(exercise.customVideoUrl)
+    : exercise?.youtubeUrl
+    ? extractYoutubeId(exercise.youtubeUrl)
+    : '';
   const customNonYoutubeUrl =
     exercise?.customVideoUrl && !customYoutubeId
       ? normalizeReelUrl(exercise.customVideoUrl)
       : null;
-  const videoId = customYoutubeId || beginner?.youtubeId || guide?.youtubeId;
+  const videoId =
+    customYoutubeId ||
+    beginner?.youtubeId ||
+    guide?.youtubeId ||
+    (savedYoutubeLink ? extractYoutubeId(savedYoutubeLink.url) : '');
+  const youtubeWatchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : '';
 
   const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     exerciseName + ' proper form exercise tutorial'
@@ -137,16 +147,28 @@ export default function ExerciseFormModal({ exercise, onClose }) {
             </div>
           )}
 
-          {/* Quick Fallback / Alternative Angles Link */}
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#22262E]/50 p-3 rounded-2xl border border-slate-100 dark:border-[#2D333B]">
-            <span className="flex items-center gap-1.5 font-medium">
-              <Video className="w-4 h-4 text-rose-500" /> Need more tips or angles?
-            </span>
+          {/* Direct YouTube URL + Quick Alternative Search Link */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#22262E]/50 p-3 rounded-2xl border border-slate-100 dark:border-[#2D333B]">
+            <div className="min-w-0 flex items-center gap-1.5">
+              <Video className="w-4 h-4 text-rose-500 shrink-0" />
+              {youtubeWatchUrl ? (
+                <a
+                  href={youtubeWatchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline truncate"
+                >
+                  {youtubeWatchUrl}
+                </a>
+              ) : (
+                <span className="font-medium">Need more tips or angles?</span>
+              )}
+            </div>
             <a
               href={youtubeSearchUrl}
               target="_blank"
               rel="noreferrer"
-              className="font-bold text-blue-600 dark:text-sky-400 hover:underline flex items-center gap-1"
+              className="font-bold text-blue-600 dark:text-sky-400 hover:underline flex items-center gap-1 shrink-0"
             >
               Search on YouTube <ExternalLink className="w-3 h-3" />
             </a>

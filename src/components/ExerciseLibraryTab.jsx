@@ -11,9 +11,10 @@ import {
   Video,
   Check,
   AlertCircle,
-  X
+  X,
+  Play
 } from 'lucide-react';
-import { MUSCLE_GROUP_CONFIG } from '../utils/exerciseData';
+import { MUSCLE_GROUP_CONFIG, extractYoutubeId, getExerciseYoutubeInfo } from '../utils/exerciseData';
 import SavedReelBookmarkBox from './SavedReelBookmarkBox';
 import ExerciseAnimation from './ExerciseAnimation';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
@@ -89,13 +90,16 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
   const [selectedEquipFilter, setSelectedEquipFilter] = useState('All');
   const [showReelsVault, setShowReelsVault] = useState(false);
 
-  // Centralized Saved Reels state synced across all components
-  const { allReels, totalReelsCount, addReel, deleteReel } = useSavedReels();
+  // Centralized Saved Videos & Reels state synced across all components
+  const { allReels, totalReelsCount, getForExercise, addReel, deleteReel } = useSavedReels();
+  const [vaultLinkMode, setVaultLinkMode] = useState('youtube'); // 'youtube' | 'reel'
   const [vaultUrl, setVaultUrl] = useState('');
   const [vaultTitle, setVaultTitle] = useState('');
   const [vaultExercise, setVaultExercise] = useState(GENERAL_REELS_KEY);
   const [vaultError, setVaultError] = useState('');
   const [vaultSavedNotice, setVaultSavedNotice] = useState('');
+  const [playingExerciseId, setPlayingExerciseId] = useState(null);
+  const [playingVaultId, setPlayingVaultId] = useState(null);
 
   // Custom User Exercises
   const [customExercises, setCustomExercises] = useState(() =>
@@ -105,6 +109,8 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
   const [newExName, setNewExName] = useState('');
   const [newExBody, setNewExBody] = useState('Chest');
   const [newExEquip, setNewExEquip] = useState('Dumbbell');
+  const [newExVideoUrl, setNewExVideoUrl] = useState('');
+  const [newExError, setNewExError] = useState('');
 
   const allExercises = useMemo(() => {
     return [...customExercises, ...ALL_LIBRARY_EXERCISES];
@@ -125,22 +131,42 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
 
   const handleSaveCustomExercise = (e) => {
     e.preventDefault();
-    if (!newExName.trim()) return;
+    setNewExError('');
+    const cleanName = newExName.trim();
+    if (!cleanName) return;
+
+    const rawVideo = newExVideoUrl.trim();
+    const ytId = rawVideo ? extractYoutubeId(rawVideo) : '';
+    if (rawVideo) {
+      if (ytId) {
+        addReel(cleanName, `https://www.youtube.com/watch?v=${ytId}`, `${cleanName} Tutorial`);
+      } else {
+        const res = addReel(cleanName, rawVideo, `${cleanName} Form Tip`);
+        if (!res.ok) {
+          setNewExError(res.error || 'Please enter a valid YouTube or Reel URL.');
+          return;
+        }
+      }
+    }
 
     const newEx = {
       id: `custom-${Date.now()}`,
-      name: newExName.trim(),
+      name: cleanName,
       body: newExBody,
       equipment: newExEquip,
       targetSets: 3,
       defaultReps: 10,
-      restSeconds: 90
+      restSeconds: 90,
+      ...(ytId ? { youtubeId: ytId, youtubeUrl: `https://www.youtube.com/watch?v=${ytId}`, customVideoUrl: `https://www.youtube.com/watch?v=${ytId}` } : {}),
+      ...(!ytId && rawVideo ? { customVideoUrl: rawVideo } : {})
     };
 
     const updated = [newEx, ...customExercises];
     setCustomExercises(updated);
     saveToStorage('user_custom_library_exercises', updated);
     setNewExName('');
+    setNewExVideoUrl('');
+    setNewExError('');
     setShowAddModal(false);
   };
 
@@ -148,6 +174,15 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
     e.preventDefault();
     setVaultError('');
     setVaultSavedNotice('');
+
+    if (vaultLinkMode === 'youtube') {
+      const ytId = extractYoutubeId(vaultUrl);
+      const isYoutubeHost = /youtube\.com|youtu\.be/i.test(vaultUrl);
+      if (!ytId && !isYoutubeHost) {
+        setVaultError('Please paste a valid YouTube URL (youtube.com/watch?v=..., youtu.be/..., or shorts/...).');
+        return;
+      }
+    }
 
     const res = addReel(vaultExercise, vaultUrl, vaultTitle);
     if (!res.ok) {
@@ -196,12 +231,12 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
             className="hero-pill-badge hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-xs font-black shrink-0 border border-white/25 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
           >
             <Bookmark className="w-3.5 h-3.5 text-pink-300" />
-            <span>{totalReelsCount} Reels</span>
+            <span>{totalReelsCount} Saved</span>
           </button>
         </div>
       </div>
 
-      {/* Mode Switcher: Exercise Catalog vs All Saved Reels Vault */}
+      {/* Mode Switcher: Exercise Catalog vs Saved Videos & Reels Vault */}
       <div className="flex rounded-2xl bg-[#F1F5F9] dark:bg-[#20242C] p-1 border border-slate-200/80 dark:border-[#2D333B]">
         <button
           type="button"
@@ -225,7 +260,7 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
           }`}
         >
           <Bookmark className="w-3.5 h-3.5 text-pink-500" />
-          <span>Saved Reels Vault ({totalReelsCount})</span>
+          <span>Reels & YouTube ({totalReelsCount})</span>
         </button>
       </div>
 
@@ -234,7 +269,7 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
         <input
           type="text"
-          placeholder={showReelsVault ? 'Search saved reels by title, exercise, or URL...' : 'Search exercises by name...'}
+          placeholder={showReelsVault ? 'Search saved YouTube videos & reels...' : 'Search exercises by name...'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#F1F5F9] dark:bg-[#22262E] text-slate-900 dark:text-white border border-slate-200/80 dark:border-[#2D333B] text-xs font-medium shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -252,10 +287,10 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
 
       {showReelsVault ? (
         /* ─────────────────────────────────────────────────────────────
-           UNIFIED SAVED REELS VAULT FOR FUTURE REFERENCE
+           UNIFIED SAVED YOUTUBE & REELS VAULT FOR FUTURE REFERENCE
            ───────────────────────────────────────────────────────────── */
         <div className="space-y-4">
-          {/* Quick Add Any Reel Form */}
+          {/* Quick Add YouTube Video or Reel Form */}
           <form
             onSubmit={handleSaveVaultReel}
             noValidate
@@ -263,7 +298,7 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-                <Video className="w-4 h-4 text-pink-500" /> Save Reel Link for Future Reference
+                <Video className="w-4 h-4 text-pink-500" /> Add YouTube Video or Reel Link
               </h3>
               {vaultSavedNotice && (
                 <span className="text-[11px] font-bold text-emerald-600 dark:text-[#A3E635] flex items-center gap-1">
@@ -272,12 +307,47 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
               )}
             </div>
 
+            <div className="grid grid-cols-2 gap-1.5 bg-[#F1F5F9] dark:bg-[#22262E] p-1 rounded-xl border border-slate-200/80 dark:border-[#2D333B]">
+              <button
+                type="button"
+                onClick={() => {
+                  setVaultLinkMode('youtube');
+                  setVaultError('');
+                }}
+                className={`py-1.5 rounded-lg text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  vaultLinkMode === 'youtube'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Play className="w-3.5 h-3.5 fill-current" /> YouTube Video URL
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setVaultLinkMode('reel');
+                  setVaultError('');
+                }}
+                className={`py-1.5 rounded-lg text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  vaultLinkMode === 'reel'
+                    ? 'bg-pink-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Bookmark className="w-3.5 h-3.5" /> Reels Link
+              </button>
+            </div>
+
             <input
               type="text"
               inputMode="url"
               autoCapitalize="none"
               autoCorrect="off"
-              placeholder="Paste Instagram Reel, YouTube, or Video URL..."
+              placeholder={
+                vaultLinkMode === 'youtube'
+                  ? 'Paste YouTube URL (youtube.com/watch?v=... or youtu.be/...)'
+                  : 'Paste Instagram Reel or TikTok URL (instagram.com/reel/...)'
+              }
               value={vaultUrl}
               onChange={(e) => {
                 setVaultUrl(e.target.value);
@@ -316,66 +386,125 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all cursor-pointer"
+              className={`w-full py-2.5 rounded-xl text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all cursor-pointer ${
+                vaultLinkMode === 'youtube'
+                  ? 'bg-rose-600 hover:bg-rose-700'
+                  : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
             >
-              <Plus className="w-4 h-4 stroke-[3]" /> Save Reel Bookmark
+              <Plus className="w-4 h-4 stroke-[3]" /> Save {vaultLinkMode === 'youtube' ? 'YouTube Video' : 'Reel Bookmark'}
             </button>
           </form>
 
-          {/* Saved Reels List */}
+          {/* Saved YouTube & Reels List */}
           {filteredVaultReels.length > 0 ? (
             <div className="space-y-2.5">
-              {filteredVaultReels.map((item) => (
-                <div
-                  key={`${item.exerciseName}-${item.id}`}
-                  className="repkraft-card rounded-2xl p-3.5 flex items-center justify-between gap-2.5"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-pink-500/15 text-pink-500 flex items-center justify-center shrink-0 mt-0.5">
-                      <Bookmark className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-[#A3E635] mb-1">
-                        {item.exerciseName}
-                      </span>
-                      <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                        {item.title}
-                      </h4>
-                      <span className="text-[10px] text-slate-400 truncate block">
-                        {item.url}
-                      </span>
-                    </div>
-                  </div>
+              {filteredVaultReels.map((item) => {
+                const ytId = extractYoutubeId(item.url);
+                const isYoutube = item.platform === 'youtube' || Boolean(ytId);
+                const itemKey = `${item.exerciseName}-${item.id}`;
+                const isPlaying = playingVaultId === itemKey && Boolean(ytId);
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs"
-                    >
-                      Open <ExternalLink className="w-3 h-3" />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => deleteReel(item.exerciseName, item.id)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                      title="Delete reel"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                return (
+                  <div
+                    key={itemKey}
+                    className="repkraft-card rounded-2xl overflow-hidden"
+                  >
+                    <div className="p-3.5 flex items-center justify-between gap-2.5">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            isYoutube
+                              ? 'bg-rose-500/15 text-rose-600'
+                              : 'bg-pink-500/15 text-pink-500'
+                          }`}
+                        >
+                          {isYoutube ? <Play className="w-4 h-4 fill-current" /> : <Bookmark className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span
+                              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                isYoutube
+                                  ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                  : 'bg-pink-500/15 text-pink-600 dark:text-pink-400'
+                              }`}
+                            >
+                              {isYoutube ? 'YouTube' : 'Reel'}
+                            </span>
+                            <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-[#A3E635]">
+                              {item.exerciseName}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {item.title}
+                          </h4>
+                          <span className="text-[10px] text-slate-400 truncate block font-mono">
+                            {item.url}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {ytId && (
+                          <button
+                            type="button"
+                            onClick={() => setPlayingVaultId(isPlaying ? null : itemKey)}
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" />
+                            <span>{isPlaying ? 'Hide' : 'Watch'}</span>
+                          </button>
+                        )}
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`px-3 py-1.5 rounded-xl text-white font-bold text-[11px] flex items-center gap-1 shadow-xs ${
+                            isYoutube
+                              ? 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700'
+                              : 'bg-pink-600 hover:bg-pink-500'
+                          }`}
+                        >
+                          Open <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (playingVaultId === itemKey) setPlayingVaultId(null);
+                            deleteReel(item.exerciseName, item.id);
+                          }}
+                          className="p-2 rounded-xl text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                          title="Delete bookmark"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {isPlaying && ytId && (
+                      <div className="aspect-video w-full bg-black border-t border-slate-200 dark:border-[#2D333B]">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1`}
+                          title={item.title || item.exerciseName}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full border-0"
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="repkraft-card rounded-2xl p-6 text-center space-y-2">
               <Bookmark className="w-8 h-8 text-pink-500 mx-auto opacity-70" />
               <h4 className="font-black text-sm text-slate-800 dark:text-white">
-                No Saved Reels Yet
+                No Saved Videos or Reels Yet
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                Paste any Instagram Reel or YouTube form video above (or under any exercise card) so you can revisit it quickly during workouts.
+                Paste any YouTube tutorial URL or Instagram Reel above (or under any exercise card) so you can revisit it quickly during workouts.
               </p>
             </div>
           )}
@@ -431,6 +560,18 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
       <div className="space-y-3 pt-1">
         {filteredExercises.map((exercise) => {
           const muscleStyle = MUSCLE_GROUP_CONFIG[exercise.body] || MUSCLE_GROUP_CONFIG.Other;
+          const savedForEx = getForExercise(exercise.name);
+          const savedYtEntry = savedForEx.find((r) => extractYoutubeId(r?.url));
+          const resolvedYt = getExerciseYoutubeInfo(exercise);
+          const effectiveYtId =
+            resolvedYt.youtubeId || (savedYtEntry ? extractYoutubeId(savedYtEntry.url) : '');
+          const effectiveYtUrl = effectiveYtId
+            ? `https://www.youtube.com/watch?v=${effectiveYtId}`
+            : '';
+          const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+            `${exercise.name} proper form exercise tutorial`
+          )}`;
+          const isVideoPlaying = playingExerciseId === exercise.id && Boolean(effectiveYtId);
 
           return (
             <div
@@ -461,6 +602,7 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
 
                 {/* Watch Form Guide & YouTube Modal Trigger */}
                 <button
+                  type="button"
                   onClick={() => onOpenFormGuide(exercise)}
                   className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-[#A3E635] border border-blue-500/20 dark:border-[#A3E635]/30 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all cursor-pointer shrink-0"
                 >
@@ -469,7 +611,69 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
                 </button>
               </div>
 
-              {/* Saved Reel Links Bookmark Box inside each exercise */}
+              {/* YouTube Form Video URL & Inline Player */}
+              <div className="rounded-2xl bg-[#F1F5F9] dark:bg-[#20242C] border border-slate-200/80 dark:border-[#2D333B] overflow-hidden">
+                <div className="p-2.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-rose-500/15 text-rose-600 flex items-center justify-center shrink-0">
+                      <Play className="w-4 h-4 fill-current" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                        YouTube Tutorial URL
+                      </span>
+                      <a
+                        href={effectiveYtUrl || ytSearchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-mono text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-[#A3E635] truncate block"
+                        title={effectiveYtUrl || ytSearchUrl}
+                      >
+                        {effectiveYtUrl || 'Search YouTube tutorials'}
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {effectiveYtId && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPlayingExerciseId(isVideoPlaying ? null : exercise.id)
+                        }
+                        className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-extrabold flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" />
+                        <span>{isVideoPlaying ? 'Hide' : 'Play'}</span>
+                      </button>
+                    )}
+                    <a
+                      href={effectiveYtUrl || ytSearchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#181B20] hover:bg-slate-100 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2D333B] text-[11px] font-bold flex items-center gap-1 transition-all"
+                      title="Open in YouTube"
+                    >
+                      <span>YouTube</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+
+                {isVideoPlaying && effectiveYtId && (
+                  <div className="aspect-video w-full bg-black border-t border-slate-200 dark:border-[#2D333B]">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${effectiveYtId}?rel=0&modestbranding=1&playsinline=1`}
+                      title={`${exercise.name} YouTube Tutorial`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Saved YouTube & Reel Links Bookmark Box inside each exercise */}
               <SavedReelBookmarkBox exerciseName={exercise.name} />
             </div>
           );
@@ -481,7 +685,7 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
       {/* Floating Plus Button to Add Custom Exercise */}
       <button
         onClick={() => setShowAddModal(true)}
-        className="fixed right-5 bottom-24 z-30 w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black flex items-center justify-center shadow-xl active:scale-95 transition-all cursor-pointer"
+        className="fixed right-4 bottom-40 z-30 w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#A3E635] dark:to-lime-400 text-white dark:text-black flex items-center justify-center shadow-xl active:scale-95 transition-all cursor-pointer"
         title="Add Custom Exercise"
       >
         <Plus className="w-6 h-6 stroke-[3]" />
@@ -494,7 +698,11 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
             <div className="flex items-center justify-between">
               <h3 className="font-black text-base">Add Custom Exercise</h3>
               <button
-                onClick={() => setShowAddModal(false)}
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setNewExError('');
+                }}
                 className="p-1.5 rounded-xl bg-slate-100 dark:bg-[#22262E] text-slate-400"
               >
                 <X className="w-4 h-4" />
@@ -545,10 +753,38 @@ export default function ExerciseLibraryTab({ onOpenFormGuide }) {
                 </select>
               </div>
 
+              <div>
+                <label className="font-bold block mb-1">
+                  YouTube Video URL or Reels Link (Optional):
+                </label>
+                <input
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder="https://youtube.com/watch?v=... or instagram.com/reel/..."
+                  value={newExVideoUrl}
+                  onChange={(e) => {
+                    setNewExVideoUrl(e.target.value);
+                    if (newExError) setNewExError('');
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#22262E] border border-slate-200 dark:border-[#2D333B] text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+
+              {newExError && (
+                <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {newExError}
+                </p>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setNewExError('');
+                  }}
                   className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-[#22262E] text-slate-600 dark:text-slate-300 font-bold"
                 >
                   Cancel

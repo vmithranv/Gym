@@ -83,7 +83,7 @@ export const BEGINNER_EXERCISE_GUIDES = {
   'Chest-Supported T-Bar Row': {
     equipment: 'Chest-Supported Row Machine',
     targetMuscle: 'Upper Back & Lats',
-    youtubeId: 'juyV3aFqA2I',
+    youtubeId: 'tzKgeGBweNM',
     imageUrl: 'https://wger.de/media/exercise-images/150/Barbell-shrugs-1.png',
     fallbackImageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
     step1: 'Position your sternum firmly against the chest pad and adjust seat height so handles are easily reachable.',
@@ -149,7 +149,7 @@ export const BEGINNER_EXERCISE_GUIDES = {
   'Goblet Squats or Hack Squat': {
     equipment: 'Dumbbell or Kettlebell',
     targetMuscle: 'Quads & Core',
-    youtubeId: 'uYumuL_G_V0',
+    youtubeId: 'lRYBbchqxtI',
     imageUrl: 'https://wger.de/media/exercise-images/111/Squats-1.png',
     fallbackImageUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop&q=80',
     step1: 'Hold one dumbbell vertically against your sternum with both hands. Stance slightly wider than shoulder width.',
@@ -182,7 +182,7 @@ export const BEGINNER_EXERCISE_GUIDES = {
   'Standing Machine Calf Raise': {
     equipment: 'Standing Calf Raise Machine',
     targetMuscle: 'Calves (Gastrocnemius)',
-    youtubeId: '3UWi44TXGYE',
+    youtubeId: '95itLfMBG40',
     imageUrl: 'https://wger.de/media/exercise-images/181/Standing-calf-raises-1.png',
     fallbackImageUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop&q=80',
     step1: 'Place shoulder pads comfortably on traps. Position the balls of your feet on the step block with heels hanging off.',

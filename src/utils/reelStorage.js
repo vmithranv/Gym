@@ -12,7 +12,7 @@ export const GENERAL_REELS_KEY = 'General Workout & Form Tips';
 export const normalizeReelUrl = (rawInput) => {
   const trimmed = (rawInput || '').trim();
   if (!trimmed) {
-    return { ok: false, error: 'Please paste an Instagram Reel or video URL.' };
+    return { ok: false, error: 'Please paste a YouTube video or Instagram Reel URL.' };
   }
 
   // Extract first http(s) URL if user pasted share text alongside a link
@@ -32,7 +32,7 @@ export const normalizeReelUrl = (rawInput) => {
   } catch {
     return {
       ok: false,
-      error: 'Please enter a valid link (e.g. https://www.instagram.com/reel/...).'
+      error: 'Please enter a valid URL (e.g. youtube.com/watch?v=... or instagram.com/reel/...).'
     };
   }
 
@@ -40,7 +40,7 @@ export const normalizeReelUrl = (rawInput) => {
   if (!host.includes('.') && host !== 'localhost') {
     return {
       ok: false,
-      error: 'Link must be a valid website URL (e.g. instagram.com/reel/... or youtu.be/...).'
+      error: 'Link must be a valid website URL (e.g. youtu.be/... or instagram.com/reel/...).'
     };
   }
 
