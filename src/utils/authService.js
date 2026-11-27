@@ -14,7 +14,8 @@ import {
   sendPasswordResetEmail,
   signOut as fbSignOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  signInAnonymously
 } from 'firebase/auth';
 import { loadFromStorage, saveToStorage, getOrCreateDeviceId } from './storage';
 
@@ -49,6 +50,8 @@ if (isFirebaseConfigured) {
 }
 
 export const getFirebaseApp = () => app;
+export const getFirebaseAuthInstance = () => auth;
+export const getCurrentFirebaseUser = () => auth?.currentUser || null;
 
 const AUTH_STORAGE_KEY = 'repkraft_user_auth';
 const LOCAL_ACCOUNTS_KEY = 'repkraft_local_accounts';
@@ -174,7 +177,7 @@ export const initAuthListener = (onUserSynced) => {
     });
 
   const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-    if (fbUser) {
+    if (fbUser && !fbUser.isAnonymous) {
       const userData = mapFirebaseUser(fbUser);
       persistUser(userData);
       onUserSynced(userData);
@@ -448,6 +451,12 @@ export const loginAsGuest = () => {
     provider: 'guest'
   };
   persistUser(guestUser);
+
+  // Best-effort anonymous Firebase session when Firebase is enabled so Firestore request.auth rules can pass
+  if (isFirebaseConfigured && auth && !auth.currentUser) {
+    signInAnonymously(auth).catch(() => {});
+  }
+
   return guestUser;
 };
 

@@ -299,7 +299,13 @@ export default function App() {
   };
 
   if (isAdminRoute) {
-    return <AdminDashboard currentUser={currentUser} onBackToApp={navigateBackFromAdmin} />;
+    return (
+      <AdminDashboard
+        currentUser={currentUser}
+        onAdminUserAuthenticated={handleAuthSuccess}
+        onBackToApp={navigateBackFromAdmin}
+      />
+    );
   }
 
   return (

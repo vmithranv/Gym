@@ -1,6 +1,6 @@
 // Centralized RepKraft User & Feature Engagement Analytics Service
 // Mirrors live events to Firebase Firestore (`users` & `activity_logs` collections)
-// while keeping exact, reconciled telemetry in localStorage when offline or in Local Telemetry Mode.
+// with real-time onSnapshot listeners, cross-tab storage sync, and exact local fallback diagnostics.
 
 import {
   getFirestore,
@@ -9,13 +9,14 @@ import {
   addDoc,
   collection,
   getDocs,
+  onSnapshot,
   query,
   orderBy,
   limit,
   increment,
   serverTimestamp
 } from 'firebase/firestore';
-import { getFirebaseApp, isFirebaseConfigured } from './authService';
+import { getFirebaseApp, getCurrentFirebaseUser, isFirebaseConfigured } from './authService';
 import {
   loadFromStorage,
   saveToStorage,
@@ -27,6 +28,7 @@ const ANALYTICS_USERS_KEY = 'repkraft_analytics_users';
 const ANALYTICS_LOGS_KEY = 'repkraft_analytics_logs';
 const ADMIN_CONFIG_KEY = 'repkraft_admin_security';
 const ADMIN_SESSION_KEY = 'repkraft_admin_unlocked';
+export const ANALYTICS_STATUS_EVENT = 'repkraft:analytics-status';
 
 export const ENV_ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
 export const ENV_ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN || '').trim();
@@ -45,6 +47,33 @@ const getDb = () => {
     return null;
   }
 };
+
+// Track real-time cloud telemetry diagnostics so /admin never hides silent Firestore errors
+let cloudDiagnostics = {
+  firebaseConfigured: isFirebaseConfigured,
+  readState: isFirebaseConfigured ? 'idle' : 'not_configured',
+  writeState: isFirebaseConfigured ? 'idle' : 'not_configured',
+  errorCode: '',
+  errorMessage: ''
+};
+
+const updateDiagnostics = (patch) => {
+  cloudDiagnostics = {
+    ...cloudDiagnostics,
+    firebaseConfigured: isFirebaseConfigured,
+    currentFirebaseEmail: getCurrentFirebaseUser()?.email || '',
+    ...patch
+  };
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(ANALYTICS_STATUS_EVENT));
+  }
+};
+
+export const getCloudDiagnostics = () => ({
+  ...cloudDiagnostics,
+  firebaseConfigured: isFirebaseConfigured,
+  currentFirebaseEmail: getCurrentFirebaseUser()?.email || ''
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PLATFORM & DEVICE HELPERS
@@ -206,7 +235,6 @@ export const mergeGuestIntoUserAnalytics = (targetUser) => {
   let changedUsers = false;
   let mergedGuestStats = null;
 
-  // Migrate local guest/device rows on this browser into the authenticated account
   Object.entries(usersMap).forEach(([uid, u]) => {
     const isLocalGuestRow =
       u &&
@@ -286,30 +314,53 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
     const platform = detectPlatform();
     const deviceLabel = detectDeviceLabel();
 
-    // 1. Ensure registered local accounts exist cleanly in users directory
+    const accountBackfills = [];
     Object.values(localAccounts || {}).forEach((acc) => {
-      if (acc && acc.uid && !usersMap[acc.uid]) {
-        usersMap[acc.uid] = {
-          uid: acc.uid,
-          name: acc.displayName || acc.email?.split('@')[0] || 'Athlete',
-          email: acc.email || '',
-          authProvider: normalizeAuthProvider(acc.provider, false),
-          platform,
-          deviceLabel,
-          createdAt: acc.createdAt || new Date().toISOString(),
-          lastActiveAt: acc.createdAt || new Date().toISOString(),
-          totalSessionsCount: 1,
-          workoutsCompleted: 0,
-          cardioLoggedCount: 0,
-          foodLoggedCount: 0,
-          aiQuestionsCount: 0,
-          reelsSavedCount: 0,
-          isDemo: false
-        };
+      if (acc && acc.uid) {
+        if (!usersMap[acc.uid]) {
+          usersMap[acc.uid] = {
+            uid: acc.uid,
+            name: acc.displayName || acc.email?.split('@')[0] || 'Athlete',
+            email: acc.email || '',
+            authProvider: normalizeAuthProvider(acc.provider, false),
+            platform,
+            deviceLabel,
+            createdAt: acc.createdAt || new Date().toISOString(),
+            lastActiveAt: acc.createdAt || new Date().toISOString(),
+            totalSessionsCount: 1,
+            workoutsCompleted: 0,
+            cardioLoggedCount: 0,
+            foodLoggedCount: 0,
+            aiQuestionsCount: 0,
+            reelsSavedCount: 0,
+            isDemo: false
+          };
+        }
+        const loginKey = `backfill-login-${acc.uid}`;
+        const hasLogin =
+          existingIds.has(loginKey) ||
+          existingLogs.some((l) => l.uid === acc.uid && l.eventType === 'user_login');
+        if (!hasLogin) {
+          existingIds.add(loginKey);
+          const loginTs = Date.parse(acc.createdAt || '') || Date.now();
+          accountBackfills.push({
+            id: loginKey,
+            eventType: 'user_login',
+            uid: acc.uid,
+            userName: acc.displayName || acc.email?.split('@')[0] || 'Athlete',
+            userEmail: acc.email || '',
+            authProvider: normalizeAuthProvider(acc.provider, false),
+            platform,
+            deviceLabel,
+            details: { authProvider: acc.provider || 'email' },
+            timestamp: loginTs,
+            createdAt: new Date(loginTs).toISOString(),
+            isDemo: false
+          });
+        }
       }
     });
 
-    // If an active user exists, attribute historical device records to them
     if (activeUser) {
       const identity = resolveAnalyticsIdentity(activeUser);
       if (!usersMap[identity.uid]) {
@@ -334,7 +385,6 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
 
       const newBackfills = [];
 
-      // 2. Backfill real completed workouts
       const workoutHistory = loadFromStorage('workout_history', []);
       (Array.isArray(workoutHistory) ? workoutHistory : []).forEach((w, idx) => {
         const wKey = `backfill-wo-${w.id || idx}`;
@@ -372,7 +422,6 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
         }
       });
 
-      // 3. Backfill user-created cardio sessions (ignore hardcoded 'cl-init-1' starter row)
       const cardioLogs = loadFromStorage('cardio_logs', []);
       (Array.isArray(cardioLogs) ? cardioLogs : []).forEach((c) => {
         if (!c || c.id === 'cl-init-1') return;
@@ -407,7 +456,6 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
         }
       });
 
-      // 4. Backfill user-logged food entries (ignore default starter items '1', '2', '3')
       const nutrition = loadFromStorage('nutrition', { logs: [] });
       (Array.isArray(nutrition?.logs) ? nutrition.logs : []).forEach((m) => {
         if (!m || m.id === '1' || m.id === '2' || m.id === '3') return;
@@ -444,7 +492,6 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
         }
       });
 
-      // 5. Backfill saved video reel links
       const savedReelsMap = loadFromStorage('saved_reel_links', {});
       Object.entries(savedReelsMap || {}).forEach(([exerciseName, list]) => {
         if (!Array.isArray(list)) return;
@@ -484,20 +531,27 @@ export const reconcileDeviceAnalytics = (explicitUser = null) => {
         });
       });
 
-      const combinedLogs = [...newBackfills, ...existingLogs]
+      const allBackfills = [...accountBackfills, ...newBackfills];
+      const combinedLogs = [...allBackfills, ...existingLogs]
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
         .slice(0, 400);
 
-      // Recompute real user counts consistently with logs
       const syncedUsers = recomputeUserCountsFromLogs(usersMap, combinedLogs);
       saveToStorage(ANALYTICS_USERS_KEY, syncedUsers);
-      saveToStorage(ANALYTICS_LOGS_KEY, combinedLogs);
+      if (allBackfills.length > 0) {
+        saveToStorage(ANALYTICS_LOGS_KEY, combinedLogs);
+      }
       return;
     }
 
-    // Always normalize user directory counts (including any cached demo entries) from logs
-    const syncedUsersOnly = recomputeUserCountsFromLogs(usersMap, existingLogs);
+    const combinedNoActive = [...accountBackfills, ...existingLogs]
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      .slice(0, 400);
+    const syncedUsersOnly = recomputeUserCountsFromLogs(usersMap, combinedNoActive);
     saveToStorage(ANALYTICS_USERS_KEY, syncedUsersOnly);
+    if (accountBackfills.length > 0) {
+      saveToStorage(ANALYTICS_LOGS_KEY, combinedNoActive);
+    }
   } catch (err) {
     console.warn('Reconcile device analytics error:', err);
   }
@@ -537,7 +591,6 @@ export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncre
     usersMap[identity.uid] = updatedLocal;
     saveToStorage(ANALYTICS_USERS_KEY, usersMap);
 
-    // Non-blocking write to Firebase Firestore
     const db = getDb();
     if (db) {
       const firestorePayload = {
@@ -568,9 +621,18 @@ export const upsertAnalyticsUser = (user, { incrementSession = false, fieldIncre
           : {})
       };
 
-      setDoc(doc(db, 'users', identity.uid), firestorePayload, { merge: true }).catch((err) => {
-        console.warn('Firestore user upsert skipped:', err?.code || err?.message);
-      });
+      setDoc(doc(db, 'users', identity.uid), firestorePayload, { merge: true })
+        .then(() => {
+          updateDiagnostics({ writeState: 'ok', errorCode: '', errorMessage: '' });
+        })
+        .catch((err) => {
+          console.warn('Firestore user upsert skipped:', err?.code || err?.message);
+          updateDiagnostics({
+            writeState: err?.code === 'permission-denied' ? 'permission_denied' : 'error',
+            errorCode: err?.code || 'write-error',
+            errorMessage: err?.message || 'Failed writing user telemetry to Firestore.'
+          });
+        });
     }
 
     return updatedLocal;
@@ -589,7 +651,6 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
   try {
     const activeUser = explicitUser || loadFromStorage('repkraft_user_auth', null);
     if (!activeUser && eventType === 'app_visit') {
-      // Wait for user to either sign in or continue as Guest instead of logging an unconfirmed ghost row
       return;
     }
 
@@ -611,11 +672,6 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
     if (eventType === 'ai_coach_asked') fieldIncrements.aiQuestionsCount = 1;
     if (eventType === 'reel_link_saved') fieldIncrements.reelsSavedCount = 1;
 
-    upsertAnalyticsUser(activeUser, {
-      incrementSession: eventType === 'app_visit' || eventType === 'user_login',
-      fieldIncrements
-    });
-
     const logEntry = {
       id: `evt-${now}-${Math.random().toString(36).slice(2, 6)}`,
       eventType,
@@ -635,14 +691,29 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
     const updatedLogs = [logEntry, ...(Array.isArray(existingLogs) ? existingLogs : [])].slice(0, 400);
     saveToStorage(ANALYTICS_LOGS_KEY, updatedLogs);
 
+    // Update user document cleanly right after logs are persisted
+    upsertAnalyticsUser(activeUser, {
+      incrementSession: eventType === 'app_visit' || eventType === 'user_login',
+      fieldIncrements
+    });
+
     const db = getDb();
     if (db) {
       addDoc(collection(db, 'activity_logs'), {
         ...logEntry,
         createdAtServer: serverTimestamp()
-      }).catch((err) => {
-        console.warn('Firestore event log skipped:', err?.code || err?.message);
-      });
+      })
+        .then(() => {
+          updateDiagnostics({ writeState: 'ok' });
+        })
+        .catch((err) => {
+          console.warn('Firestore event log skipped:', err?.code || err?.message);
+          updateDiagnostics({
+            writeState: err?.code === 'permission-denied' ? 'permission_denied' : 'error',
+            errorCode: err?.code || 'write-error',
+            errorMessage: err?.message || 'Failed writing event telemetry to Firestore.'
+          });
+        });
     }
   } catch (err) {
     console.warn('Analytics event logging error:', err);
@@ -650,58 +721,189 @@ export const logAnalyticsEvent = (eventType, details = {}, explicitUser = null) 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADMIN FETCHING, EXACT METRICS AGGREGATION, DEMO SEEDING & CSV EXPORT
+// ADMIN FETCHING, REALTIME SUBSCRIPTION, AGGREGATION & EXPORT
 // ─────────────────────────────────────────────────────────────────────────────
+const mergeLocalAndRemoteData = (remoteUsers = [], remoteLogs = []) => {
+  const localUsersMap = loadFromStorage(ANALYTICS_USERS_KEY, {});
+  const localLogs = Array.isArray(loadFromStorage(ANALYTICS_LOGS_KEY, []))
+    ? loadFromStorage(ANALYTICS_LOGS_KEY, [])
+    : [];
+
+  const mergedUsersMap = { ...localUsersMap };
+  remoteUsers.forEach((u) => {
+    const localU = mergedUsersMap[u.uid] || {};
+    mergedUsersMap[u.uid] = {
+      ...localU,
+      ...u,
+      workoutsCompleted: Math.max(Number(u.workoutsCompleted) || 0, Number(localU.workoutsCompleted) || 0),
+      cardioLoggedCount: Math.max(Number(u.cardioLoggedCount) || 0, Number(localU.cardioLoggedCount) || 0),
+      foodLoggedCount: Math.max(Number(u.foodLoggedCount) || 0, Number(localU.foodLoggedCount) || 0)
+    };
+  });
+
+  const seenLogIds = new Set();
+  const combinedLogs = [];
+  [...remoteLogs, ...localLogs].forEach((entry) => {
+    const k = entry.id || `${entry.uid}-${entry.timestamp}-${entry.eventType}`;
+    if (!seenLogIds.has(k)) {
+      seenLogIds.add(k);
+      combinedLogs.push(entry);
+    }
+  });
+
+  const users = Object.values(mergedUsersMap);
+  users.sort((a, b) => Date.parse(b.lastActiveAt || 0) - Date.parse(a.lastActiveAt || 0));
+  combinedLogs.sort((a, b) => (b.timestamp || Date.parse(b.createdAt || 0)) - (a.timestamp || Date.parse(a.createdAt || 0)));
+
+  return { users, logs: combinedLogs };
+};
+
 export const fetchAdminAnalytics = async () => {
-  // Always ensure real device data & accounts are reconciled accurately first
   reconcileDeviceAnalytics();
 
-  const localUsersMap = loadFromStorage(ANALYTICS_USERS_KEY, {});
-  const localLogs = loadFromStorage(ANALYTICS_LOGS_KEY, []);
+  const db = getDb();
+  if (!db) {
+    updateDiagnostics({ readState: 'not_configured' });
+    const { users, logs } = mergeLocalAndRemoteData([], []);
+    return { users, logs, source: 'local', diagnostics: getCloudDiagnostics() };
+  }
 
-  let users = Object.values(localUsersMap || {});
-  let logs = Array.isArray(localLogs) ? [...localLogs] : [];
-  let source = 'local';
+  let remoteUsers = [];
+  let remoteLogs = [];
+  let readErr = null;
+  let firestoreSucceeded = false;
+
+  const [usersRes, logsRes] = await Promise.allSettled([
+    getDocs(query(collection(db, 'users'), limit(500))),
+    getDocs(query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'), limit(400)))
+  ]);
+
+  if (usersRes.status === 'fulfilled') {
+    remoteUsers = usersRes.value.docs.map((d) => ({ uid: d.id, ...d.data() }));
+    firestoreSucceeded = true;
+  } else {
+    readErr = usersRes.reason;
+  }
+
+  if (logsRes.status === 'fulfilled') {
+    remoteLogs = logsRes.value.docs.map((d) => ({ id: d.id, ...d.data() }));
+    firestoreSucceeded = true;
+  } else if (logsRes.reason?.code === 'failed-precondition') {
+    // Fallback query without orderBy in case index isn't available yet
+    try {
+      const unorderedSnap = await getDocs(query(collection(db, 'activity_logs'), limit(400)));
+      remoteLogs = unorderedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      firestoreSucceeded = true;
+    } catch (innerErr) {
+      if (!readErr) readErr = innerErr;
+    }
+  } else if (!readErr) {
+    readErr = logsRes.reason;
+  }
+
+  if (readErr && !firestoreSucceeded) {
+    console.warn('Firestore admin fetch fallback to local telemetry:', readErr?.code || readErr?.message);
+    updateDiagnostics({
+      readState: readErr?.code === 'permission-denied' ? 'permission_denied' : 'error',
+      errorCode: readErr?.code || 'read-error',
+      errorMessage: readErr?.message || 'Unable to read Firestore admin collections.'
+    });
+    const { users, logs } = mergeLocalAndRemoteData([], []);
+    return { users, logs, source: 'local', diagnostics: getCloudDiagnostics() };
+  }
+
+  updateDiagnostics({
+    readState: 'ok',
+    errorCode: '',
+    errorMessage: ''
+  });
+
+  const { users, logs } = mergeLocalAndRemoteData(remoteUsers, remoteLogs);
+  return {
+    users,
+    logs,
+    source: 'firestore',
+    diagnostics: getCloudDiagnostics()
+  };
+};
+
+/**
+ * Subscribes to live Firestore updates (users & activity_logs) AND cross-tab localStorage updates
+ * so /admin updates immediately whenever any new user logs in!
+ */
+export const subscribeToAdminAnalytics = (onUpdate) => {
+  let latestRemoteUsers = [];
+  let latestRemoteLogs = [];
+  let unsubUsers = null;
+  let unsubLogs = null;
+
+  const emitCombined = (sourceOverride = null) => {
+    const { users, logs } = mergeLocalAndRemoteData(latestRemoteUsers, latestRemoteLogs);
+    onUpdate({
+      users,
+      logs,
+      source: sourceOverride || (isFirebaseConfigured && getCloudDiagnostics().readState === 'ok' ? 'firestore' : 'local'),
+      diagnostics: getCloudDiagnostics()
+    });
+  };
+
+  // Cross-tab & focus refresh for same-browser logins (read-only so tabs never race-overwrite localStorage)
+  const handleStorageEvent = (e) => {
+    if (!e?.key || e.key.includes('repkraft_analytics') || e.key.includes('repkraft_user_auth')) {
+      emitCombined();
+    }
+  };
+  const handleLocalChange = () => emitCombined();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('focus', handleLocalChange);
+    window.addEventListener(ANALYTICS_STATUS_EVENT, handleLocalChange);
+  }
 
   const db = getDb();
   if (db) {
     try {
-      const [usersSnap, logsSnap] = await Promise.all([
-        getDocs(query(collection(db, 'users'), limit(500))),
-        getDocs(query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'), limit(400)))
-      ]);
+      unsubUsers = onSnapshot(
+        query(collection(db, 'users'), limit(500)),
+        (snap) => {
+          latestRemoteUsers = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+          updateDiagnostics({ readState: 'ok', errorCode: '', errorMessage: '' });
+          emitCombined('firestore');
+        },
+        (err) => {
+          updateDiagnostics({
+            readState: err?.code === 'permission-denied' ? 'permission_denied' : 'error',
+            errorCode: err?.code || 'snapshot-error',
+            errorMessage: err?.message || 'Firestore live listener blocked.'
+          });
+          emitCombined('local');
+        }
+      );
 
-      const remoteUsers = usersSnap.docs.map((d) => ({ uid: d.id, ...d.data() }));
-      const remoteLogs = logsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-      if (remoteUsers.length > 0 || remoteLogs.length > 0) {
-        const mergedUsersMap = { ...localUsersMap };
-        remoteUsers.forEach((u) => {
-          mergedUsersMap[u.uid] = { ...mergedUsersMap[u.uid], ...u };
-        });
-        users = Object.values(mergedUsersMap);
-
-        const seenLogIds = new Set();
-        const combinedLogs = [];
-        [...remoteLogs, ...logs].forEach((entry) => {
-          const k = entry.id || `${entry.uid}-${entry.timestamp}-${entry.eventType}`;
-          if (!seenLogIds.has(k)) {
-            seenLogIds.add(k);
-            combinedLogs.push(entry);
-          }
-        });
-        logs = combinedLogs;
-        source = 'firestore';
-      }
+      unsubLogs = onSnapshot(
+        query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'), limit(400)),
+        (snap) => {
+          latestRemoteLogs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          emitCombined('firestore');
+        },
+        () => {
+          // Logs permission/index handled cleanly without blocking users list
+        }
+      );
     } catch (err) {
-      console.warn('Firestore admin fetch fallback to local telemetry:', err?.code || err?.message);
+      console.warn('Could not start Firestore live listener:', err);
     }
   }
 
-  users.sort((a, b) => Date.parse(b.lastActiveAt || 0) - Date.parse(a.lastActiveAt || 0));
-  logs.sort((a, b) => (b.timestamp || Date.parse(b.createdAt || 0)) - (a.timestamp || Date.parse(a.createdAt || 0)));
-
-  return { users, logs, source };
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('focus', handleLocalChange);
+      window.removeEventListener(ANALYTICS_STATUS_EVENT, handleLocalChange);
+    }
+    if (typeof unsubUsers === 'function') unsubUsers();
+    if (typeof unsubLogs === 'function') unsubLogs();
+  };
 };
 
 export const computeAdminMetrics = (users = [], logs = []) => {
@@ -733,7 +935,6 @@ export const computeAdminMetrics = (users = [], logs = []) => {
     if (lastActiveMs >= sevenDaysCutoff) activeLast7Days++;
   });
 
-  // Compute workouts, volume, and feature engagement strictly from unified logs so KPI & chart match 100%
   let pushWorkouts = 0;
   let pullWorkouts = 0;
   let legWorkouts = 0;
@@ -774,7 +975,6 @@ export const computeAdminMetrics = (users = [], logs = []) => {
   const userSumCardio = users.reduce((s, u) => s + (Number(u.cardioLoggedCount) || 0), 0);
   const userSumFood = users.reduce((s, u) => s + (Number(u.foodLoggedCount) || 0), 0);
 
-  // If user totals exceed explicit event rows (e.g. old remote docs before event logs), keep untracked workouts explicit in Freestyle/Other
   const totalWorkouts = Math.max(totalWorkoutsFromLogs, userSumWorkouts);
   const totalCardioLogs = Math.max(cardioCountFromLogs, userSumCardio);
   const totalFoodLogs = Math.max(foodCountFromLogs, userSumFood);

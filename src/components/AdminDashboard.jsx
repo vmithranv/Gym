@@ -18,10 +18,15 @@ import {
   Database,
   Trash2,
   BarChart3,
+  AlertTriangle,
+  Wifi,
+  CheckCircle2,
   Heart
 } from 'lucide-react';
 import {
   fetchAdminAnalytics,
+  subscribeToAdminAnalytics,
+  getCloudDiagnostics,
   computeAdminMetrics,
   exportAdminCsvReport,
   seedDemoAnalyticsData,
@@ -30,10 +35,16 @@ import {
   getAdminSecurityConfig,
   saveLocalAdminSecurity,
   isAdminUnlocked,
+  isAdminEmailMatch,
   setAdminSessionUnlocked,
   verifyAdminPin
 } from '../utils/analyticsService';
-import { isFirebaseConfigured } from '../utils/authService';
+import {
+  isFirebaseConfigured,
+  loginWithGoogle,
+  loginWithEmail,
+  formatAuthError
+} from '../utils/authService';
 
 const formatRelativeTime = (isoOrMs) => {
   const ts = typeof isoOrMs === 'number' ? isoOrMs : Date.parse(isoOrMs || '');
@@ -78,7 +89,7 @@ const formatActivitySentence = (evt) => {
   }
 };
 
-export default function AdminDashboard({ currentUser, onBackToApp }) {
+export default function AdminDashboard({ currentUser, onAdminUserAuthenticated, onBackToApp }) {
   const [unlocked, setUnlocked] = useState(() => isAdminUnlocked(currentUser));
   const [securityConfig, setSecurityConfig] = useState(() => getAdminSecurityConfig());
 
@@ -87,12 +98,17 @@ export default function AdminDashboard({ currentUser, onBackToApp }) {
   const [setupPinInput, setSetupPinInput] = useState('');
   const [setupEmailInput, setSetupEmailInput] = useState(currentUser?.email || '');
   const [authError, setAuthError] = useState('');
+  const [cloudAuthLoading, setCloudAuthLoading] = useState(false);
 
   // Analytics state
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [dataSource, setDataSource] = useState('local');
+  const [diagnostics, setDiagnostics] = useState(() => getCloudDiagnostics());
   const [loading, setLoading] = useState(false);
+  const [showAdminEmailLogin, setShowAdminEmailLogin] = useState(false);
+  const [adminLoginEmail, setAdminLoginEmail] = useState(() => getAdminSecurityConfig().adminEmail || '');
+  const [adminLoginPass, setAdminLoginPass] = useState('');
 
   // Filters & Settings drawer
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +125,7 @@ export default function AdminDashboard({ currentUser, onBackToApp }) {
       setUsers(res.users);
       setLogs(res.logs);
       setDataSource(res.source);
+      if (res.diagnostics) setDiagnostics(res.diagnostics);
     } finally {
       setLoading(false);
     }
@@ -123,12 +140,74 @@ export default function AdminDashboard({ currentUser, onBackToApp }) {
         setUsers(res.users);
         setLogs(res.logs);
         setDataSource(res.source);
+        if (res.diagnostics) setDiagnostics(res.diagnostics);
       }
     })();
+
+    const unsubscribe = subscribeToAdminAnalytics((live) => {
+      if (!cancelled) {
+        setUsers(live.users);
+        setLogs(live.logs);
+        setDataSource(live.source);
+        if (live.diagnostics) setDiagnostics(live.diagnostics);
+      }
+    });
+
     return () => {
       cancelled = true;
+      if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, [unlocked]);
+
+  // Admin Firebase Google Sign-In (so Firestore Admin security rules verify request.auth.token.email)
+  const handleAdminGoogleSignIn = async () => {
+    setAuthError('');
+    setCloudAuthLoading(true);
+    try {
+      const res = await loginWithGoogle();
+      if (res?.redirecting) return;
+      if (onAdminUserAuthenticated) onAdminUserAuthenticated(res);
+      if (isAdminEmailMatch(res) || !securityConfig.adminEmail) {
+        setAdminSessionUnlocked(true);
+        setUnlocked(true);
+        await refreshAnalytics();
+      } else {
+        setAuthError(
+          `Signed in as ${res.email}, which does not match configured VITE_ADMIN_EMAIL (${securityConfig.adminEmail}).`
+        );
+      }
+    } catch (err) {
+      setAuthError(formatAuthError(err));
+    } finally {
+      setCloudAuthLoading(false);
+    }
+  };
+
+  // Admin Firebase Email/Password Sign-In
+  const handleAdminEmailSignIn = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setCloudAuthLoading(true);
+    try {
+      const user = await loginWithEmail(adminLoginEmail.trim(), adminLoginPass);
+      if (onAdminUserAuthenticated) onAdminUserAuthenticated(user);
+      if (isAdminEmailMatch(user) || !securityConfig.adminEmail) {
+        setAdminSessionUnlocked(true);
+        setUnlocked(true);
+        setShowAdminEmailLogin(false);
+        setAdminLoginPass('');
+        await refreshAnalytics();
+      } else {
+        setAuthError(
+          `Signed in as ${user.email}, which does not match configured VITE_ADMIN_EMAIL (${securityConfig.adminEmail}).`
+        );
+      }
+    } catch (err) {
+      setAuthError(formatAuthError(err));
+    } finally {
+      setCloudAuthLoading(false);
+    }
+  };
 
   // First-time local admin PIN setup OR existing PIN verification
   const handleUnlockSubmit = (e) => {
@@ -330,6 +409,22 @@ export default function AdminDashboard({ currentUser, onBackToApp }) {
                 {securityConfig.hasCustomPin ? 'Unlock Admin Dashboard' : 'Save PIN & Open Dashboard'}
               </button>
             </div>
+
+            {isFirebaseConfigured && (
+              <div className="pt-3 border-t border-slate-100 dark:border-[#2D333B] space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block text-center">
+                  Or Sign In with Firebase Admin Account (Required for Cloud Firestore Read)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAdminGoogleSignIn}
+                  disabled={cloudAuthLoading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white dark:bg-[#22262E] text-slate-800 dark:text-white border border-slate-300 dark:border-[#2D333B] hover:bg-slate-50 font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                >
+                  <span>{cloudAuthLoading ? 'Signing in...' : 'Sign In with Admin Google'}</span>
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -353,10 +448,15 @@ export default function AdminDashboard({ currentUser, onBackToApp }) {
                   <Sparkles className="w-3.5 h-3.5 text-emerald-300" /> RepKraft Telemetry
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold hero-pill-badge text-emerald-200 border border-white/20">
-                  <Database className="w-3 h-3" />
-                  {dataSource === 'firestore' && isFirebaseConfigured
-                    ? 'Firestore Live Cloud'
-                    : 'Local Telemetry Mode'}
+                  {dataSource === 'firestore' && isFirebaseConfigured ? (
+                    <>
+                      <Wifi className="w-3 h-3 text-emerald-300" /> Firestore Live Realtime
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-3 h-3" /> Local Telemetry Mode
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -401,6 +501,94 @@ export default function AdminDashboard({ currentUser, onBackToApp }) {
             </div>
           </div>
         </div>
+
+        {/* Telemetry Cloud Sync Diagnostic Banner (Explains Multi-Device vs Local or Auth/Rules Issues) */}
+        {!isFirebaseConfigured ? (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-700/40 text-xs space-y-1.5">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <strong className="font-black text-amber-900 dark:text-amber-300 block">
+                  Local Browser Mode Only — Multi-Device Cloud Sync Not Configured Yet
+                </strong>
+                <p className="text-amber-800 dark:text-amber-200/90 leading-relaxed text-[11px]">
+                  This deployment does not have Firebase keys (`VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_PROJECT_ID`, etc.) yet. Logins from this browser update automatically in real time, whereas users who log in on <strong>other phones or browsers</strong> will appear across devices once you add the 6 <code>VITE_FIREBASE_*</code> variables + <code>VITE_ADMIN_EMAIL</code> in Vercel and click <strong>Redeploy</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : diagnostics.readState === 'permission_denied' || diagnostics.writeState === 'permission_denied' ? (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-300/80 dark:border-rose-700/40 text-xs space-y-2.5">
+            <div className="flex items-start justify-between flex-wrap gap-2">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-black text-rose-900 dark:text-rose-300 block">
+                    Firebase Cloud Sync Blocked ({diagnostics.errorCode || 'permission-denied'})
+                  </strong>
+                  <p className="text-rose-800 dark:text-rose-200/90 text-[11px] leading-relaxed mt-0.5">
+                    {diagnostics.currentFirebaseEmail
+                      ? `Currently signed into Firebase as "${diagnostics.currentFirebaseEmail}". Verify Firestore rules allow your Admin email (${securityConfig.adminEmail || 'VITE_ADMIN_EMAIL'}) to read "users" and "activity_logs", and allow app users to write.`
+                      : `You unlocked via PIN without a Firebase Admin login session. Sign into Firebase with your Admin account (${securityConfig.adminEmail || 'your-admin@gmail.com'}) so Firestore lets you read cross-device users:`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleAdminGoogleSignIn}
+                  disabled={cloudAuthLoading}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] cursor-pointer"
+                >
+                  {cloudAuthLoading ? 'Signing In...' : 'Sign In with Admin Google'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAdminEmailLogin((v) => !v)}
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#181B20] border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 font-bold text-[11px] cursor-pointer"
+                >
+                  Email Login
+                </button>
+              </div>
+            </div>
+
+            {showAdminEmailLogin && (
+              <form onSubmit={handleAdminEmailSignIn} className="flex flex-wrap gap-2 pt-1">
+                <input
+                  type="email"
+                  placeholder="Admin Email"
+                  value={adminLoginEmail}
+                  onChange={(e) => setAdminLoginEmail(e.target.value)}
+                  className="flex-1 min-w-[160px] px-3 py-1.5 rounded-xl bg-white dark:bg-[#181B20] border border-rose-200 text-xs"
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={adminLoginPass}
+                  onChange={(e) => setAdminLoginPass(e.target.value)}
+                  className="flex-1 min-w-[140px] px-3 py-1.5 rounded-xl bg-white dark:bg-[#181B20] border border-rose-200 text-xs"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={cloudAuthLoading}
+                  className="px-4 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs cursor-pointer"
+                >
+                  Connect Cloud
+                </button>
+              </form>
+            )}
+          </div>
+        ) : dataSource === 'firestore' ? (
+          <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/40 flex items-center justify-between gap-2 text-[11px] text-emerald-900 dark:text-emerald-200">
+            <span className="flex items-center gap-1.5 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#A3E635] shrink-0" />
+              Live Cloud Sync Active ({diagnostics.currentFirebaseEmail || 'Firebase Connected'}) — New logins from mobile or web appear automatically.
+            </span>
+          </div>
+        ) : null}
 
         {/* Explicit Banner when Demo Preview Dataset rows are included */}
         {metrics.hasDemoData && (
